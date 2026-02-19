@@ -1,0 +1,42 @@
+[
+  {
+    "name": "90° Standard",
+    "width": 20.0,
+    "height": 10.0,
+    "radius": 30.0,
+    "angle": 90.0,
+    "segments": 20
+  },
+  {
+    "name": "45° Compact",
+    "width": 15.0,
+    "height": 8.0,
+    "radius": 20.0,
+    "angle": 45.0,
+    "segments": 15
+  },
+  {
+    "name": "90° Large HVAC",
+    "width": 40.0,
+    "height": 20.0,
+    "radius": 50.0,
+    "angle": 90.0,
+    "segments": 24
+  },
+  {
+    "name": "180° Return",
+    "width": 20.0,
+    "height": 10.0,
+    "radius": 25.0,
+    "angle": 180.0,
+    "segments": 32
+  },
+  {
+    "name": "30° Gentle Bend",
+    "width": 20.0,
+    "height": 10.0,
+    "radius": 40.0,
+    "angle": 30.0,
+    "segments": 12
+  }
+]

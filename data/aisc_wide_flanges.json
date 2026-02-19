@@ -1,0 +1,86 @@
+[
+  {
+    "designation": "W8x24",
+    "name": "W8x24",
+    "weight_lb_ft": 24,
+    "depth_d": 7.93,
+    "flange_width_bf": 6.495,
+    "flange_thickness_tf": 0.400,
+    "web_thickness_tw": 0.245,
+    "fillet_radius_k": 0.5,
+    "area_in2": 7.08,
+    "notes": "8\" nominal depth, 24 lb/ft"
+  },
+  {
+    "designation": "W8x31",
+    "name": "W8x31",
+    "weight_lb_ft": 31,
+    "depth_d": 8.00,
+    "flange_width_bf": 7.995,
+    "flange_thickness_tf": 0.435,
+    "web_thickness_tw": 0.285,
+    "fillet_radius_k": 0.5,
+    "area_in2": 9.13,
+    "notes": "8\" nominal depth, 31 lb/ft"
+  },
+  {
+    "designation": "W10x33",
+    "name": "W10x33",
+    "weight_lb_ft": 33,
+    "depth_d": 9.73,
+    "flange_width_bf": 7.960,
+    "flange_thickness_tf": 0.435,
+    "web_thickness_tw": 0.290,
+    "fillet_radius_k": 0.5,
+    "area_in2": 9.71,
+    "notes": "10\" nominal depth, 33 lb/ft"
+  },
+  {
+    "designation": "W12x26",
+    "name": "W12x26",
+    "weight_lb_ft": 26,
+    "depth_d": 12.22,
+    "flange_width_bf": 6.490,
+    "flange_thickness_tf": 0.380,
+    "web_thickness_tw": 0.230,
+    "fillet_radius_k": 0.5,
+    "area_in2": 7.65,
+    "notes": "12\" nominal depth, 26 lb/ft"
+  },
+  {
+    "designation": "W12x40",
+    "name": "W12x40",
+    "weight_lb_ft": 40,
+    "depth_d": 11.94,
+    "flange_width_bf": 8.005,
+    "flange_thickness_tf": 0.515,
+    "web_thickness_tw": 0.295,
+    "fillet_radius_k": 0.5,
+    "area_in2": 11.8,
+    "notes": "12\" nominal depth, 40 lb/ft"
+  },
+  {
+    "designation": "W14x26",
+    "name": "W14x26",
+    "weight_lb_ft": 26,
+    "depth_d": 13.91,
+    "flange_width_bf": 5.025,
+    "flange_thickness_tf": 0.420,
+    "web_thickness_tw": 0.255,
+    "fillet_radius_k": 0.5,
+    "area_in2": 7.69,
+    "notes": "14\" nominal depth, 26 lb/ft"
+  },
+  {
+    "designation": "W16x31",
+    "name": "W16x31",
+    "weight_lb_ft": 31,
+    "depth_d": 15.88,
+    "flange_width_bf": 5.525,
+    "flange_thickness_tf": 0.440,
+    "web_thickness_tw": 0.275,
+    "fillet_radius_k": 0.5,
+    "area_in2": 9.12,
+    "notes": "16\" nominal depth, 31 lb/ft"
+  }
+]

@@ -1,0 +1,8 @@
+Item #,Type,Description,Dimensions,Qty,Unit Wt (lb/ft),Total Wt (lb),Material
+1,MEP - Piping,Pipe - Elbow,,1,,,Carbon Steel
+2,MEP - Piping,Pipe - Straight,"L: 24.0""",1,,,Carbon Steel
+3,MEP - Piping,Pipe - Elbow,,1,,,Carbon Steel
+4,Steel,HSS Tube - HSS6x6x1/4,"L: 120.0""",1,19.02,190.20,A992 Steel
+5,Steel,HSS Tube - HSS6x6x1/4,"L: 34.679999224841595""",1,19.02,54.97,A992 Steel
+6,Steel,Wide Flange Beam - W8x24,"L: 96.0""",1,24.00,192.00,A992 Steel
+7,Steel,Wide Flange Beam - W8x24,"L: 30.0""",1,24.00,60.00,A992 Steel

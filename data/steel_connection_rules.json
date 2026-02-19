@@ -1,0 +1,197 @@
+{
+    "version": "1.0",
+    "standard": "AISC 360-22",
+    "connection_types": {
+        "shear_tab": {
+            "description": "Single plate welded to support, bolted to beam web",
+            "aliases": [
+                "single_plate",
+                "shear_plate"
+            ],
+            "supported_geometries": [
+                "W_web_to_W_flange",
+                "W_web_to_W_web",
+                "W_web_to_HSS_face",
+                "C_web_to_W_flange",
+                "C_web_to_HSS_face"
+            ],
+            "parameters": {
+                "min_bolts": 2,
+                "max_bolts": 12,
+                "weld_to_bolt_distance_conventional_max": 3.5,
+                "min_edge_distance_factor": 1.5,
+                "horizontal_edge_distance_factor": 2.0,
+                "standard_vertical_spacing": 3.0
+            },
+            "plate_thickness_options": [
+                0.25,
+                0.3125,
+                0.375,
+                0.4375,
+                0.5,
+                0.625,
+                0.75
+            ],
+            "notes": "Conventional config: single column, max 3.5\" weld-to-bolt distance"
+        },
+        "double_angle": {
+            "description": "Two angles bolted/welded on each side of beam web",
+            "aliases": [
+                "clip_angle",
+                "angle_connection"
+            ],
+            "supported_geometries": [
+                "W_web_to_W_flange",
+                "W_web_to_W_web",
+                "W_web_to_column_flange",
+                "C_web_to_W_flange"
+            ],
+            "parameters": {
+                "min_bolts": 2,
+                "max_bolts": 12,
+                "min_angle_thickness": 0.25,
+                "max_angle_thickness": 0.625,
+                "standard_vertical_spacing": 3.0,
+                "outstanding_leg_clearance": 0.5
+            },
+            "angle_sizes": [
+                "L3x3x1/4",
+                "L3x3x3/8",
+                "L4x3x1/4",
+                "L4x3x3/8",
+                "L4x4x3/8",
+                "L5x3x3/8"
+            ],
+            "notes": "Outstanding leg typically 1/2\" longer for erection clearance"
+        },
+        "end_plate": {
+            "description": "Plate welded to beam end for bolted connection",
+            "aliases": [
+                "flush_end_plate",
+                "extended_end_plate"
+            ],
+            "supported_geometries": [
+                "W_end_to_column_flange",
+                "W_end_to_W_end",
+                "C_end_to_column_flange"
+            ],
+            "parameters": {
+                "min_thickness": 0.375,
+                "max_thickness": 2.0,
+                "extension_beyond_flange": 1.0
+            },
+            "notes": "Used for moment connections or when web access is limited"
+        },
+        "through_plate": {
+            "description": "Plate passes through HSS column for shear connection",
+            "aliases": [
+                "extended_shear_tab"
+            ],
+            "supported_geometries": [
+                "W_web_to_HSS_through",
+                "C_web_to_HSS_through"
+            ],
+            "parameters": {
+                "min_plate_extension": 3.0,
+                "requires_slender_hss": false
+            },
+            "notes": "Required when HSS wall is slender or punching shear is inadequate"
+        },
+        "seated": {
+            "description": "Seat angle/plate supporting beam bottom flange",
+            "aliases": [
+                "seat_connection",
+                "unstiffened_seat",
+                "stiffened_seat"
+            ],
+            "supported_geometries": [
+                "W_flange_to_column_flange",
+                "W_flange_to_column_web",
+                "C_flange_to_column_flange"
+            ],
+            "parameters": {
+                "min_seat_width": 4.0,
+                "min_outstanding_leg": 3.5
+            },
+            "notes": "Requires stabilizing top angle for erection"
+        }
+    },
+    "bolt_specifications": {
+        "A307": {
+            "grade": "A",
+            "shear_stress_ksi": 24.0,
+            "tensile_stress_ksi": 45.0,
+            "notes": "Low-carbon steel, non-critical connections"
+        },
+        "A325": {
+            "grade": "N",
+            "shear_stress_ksi": 54.0,
+            "tensile_stress_ksi": 90.0,
+            "notes": "High-strength, threads included in shear plane"
+        },
+        "A325X": {
+            "grade": "X",
+            "shear_stress_ksi": 68.0,
+            "tensile_stress_ksi": 90.0,
+            "notes": "High-strength, threads excluded from shear plane"
+        },
+        "A490": {
+            "grade": "N",
+            "shear_stress_ksi": 68.0,
+            "tensile_stress_ksi": 113.0,
+            "notes": "Higher strength, threads included"
+        }
+    },
+    "bolt_sizes": {
+        "5/8": {
+            "diameter": 0.625,
+            "hole_std": 0.6875,
+            "hole_oversize": 0.8125
+        },
+        "3/4": {
+            "diameter": 0.75,
+            "hole_std": 0.8125,
+            "hole_oversize": 0.9375
+        },
+        "7/8": {
+            "diameter": 0.875,
+            "hole_std": 0.9375,
+            "hole_oversize": 1.0625
+        },
+        "1": {
+            "diameter": 1.0,
+            "hole_std": 1.0625,
+            "hole_oversize": 1.25
+        },
+        "1-1/8": {
+            "diameter": 1.125,
+            "hole_std": 1.1875,
+            "hole_oversize": 1.4375
+        },
+        "1-1/4": {
+            "diameter": 1.25,
+            "hole_std": 1.3125,
+            "hole_oversize": 1.5625
+        }
+    },
+    "weld_specifications": {
+        "E70XX": {
+            "electrode": "E70",
+            "fexx_ksi": 70.0,
+            "fillet_strength_factor": 0.6,
+            "notes": "Most common for structural steel"
+        }
+    },
+    "edge_distances": {
+        "min_factor_sheared": 1.75,
+        "min_factor_rolled": 1.25,
+        "preferred_factor": 1.5,
+        "notes": "Multiply by bolt diameter for minimum edge distance"
+    },
+    "hss_special_rules": {
+        "min_wall_for_single_plate": 0.25,
+        "slender_wall_limit_b_over_t": 35,
+        "through_plate_required_when_slender": true,
+        "notes": "Per AISC Manual Part 10 and Design Guide 24"
+    }
+}

@@ -1,0 +1,112 @@
+[
+  {
+    "designation": "C3x4.1",
+    "name": "C3x4.1",
+    "weight_lb_ft": 4.1,
+    "depth_d": 3.0,
+    "flange_width_bf": 1.410,
+    "flange_thickness_tf": 0.273,
+    "web_thickness_tw": 0.170,
+    "area_in2": 1.20,
+    "notes": "3\" nominal depth, 4.1 lb/ft"
+  },
+  {
+    "designation": "C4x5.4",
+    "name": "C4x5.4",
+    "weight_lb_ft": 5.4,
+    "depth_d": 4.0,
+    "flange_width_bf": 1.584,
+    "flange_thickness_tf": 0.296,
+    "web_thickness_tw": 0.184,
+    "area_in2": 1.59,
+    "notes": "4\" nominal depth, 5.4 lb/ft"
+  },
+  {
+    "designation": "C5x6.7",
+    "name": "C5x6.7",
+    "weight_lb_ft": 6.7,
+    "depth_d": 5.0,
+    "flange_width_bf": 1.750,
+    "flange_thickness_tf": 0.320,
+    "web_thickness_tw": 0.190,
+    "area_in2": 1.97,
+    "notes": "5\" nominal depth, 6.7 lb/ft"
+  },
+  {
+    "designation": "C6x8.2",
+    "name": "C6x8.2",
+    "weight_lb_ft": 8.2,
+    "depth_d": 6.0,
+    "flange_width_bf": 1.920,
+    "flange_thickness_tf": 0.343,
+    "web_thickness_tw": 0.200,
+    "area_in2": 2.40,
+    "notes": "6\" nominal depth, 8.2 lb/ft"
+  },
+  {
+    "designation": "C7x9.8",
+    "name": "C7x9.8",
+    "weight_lb_ft": 9.8,
+    "depth_d": 7.0,
+    "flange_width_bf": 2.090,
+    "flange_thickness_tf": 0.366,
+    "web_thickness_tw": 0.210,
+    "area_in2": 2.87,
+    "notes": "7\" nominal depth, 9.8 lb/ft"
+  },
+  {
+    "designation": "C8x11.5",
+    "name": "C8x11.5",
+    "weight_lb_ft": 11.5,
+    "depth_d": 8.0,
+    "flange_width_bf": 2.260,
+    "flange_thickness_tf": 0.390,
+    "web_thickness_tw": 0.220,
+    "area_in2": 3.38,
+    "notes": "8\" nominal depth, 11.5 lb/ft"
+  },
+  {
+    "designation": "C9x13.4",
+    "name": "C9x13.4",
+    "weight_lb_ft": 13.4,
+    "depth_d": 9.0,
+    "flange_width_bf": 2.430,
+    "flange_thickness_tf": 0.413,
+    "web_thickness_tw": 0.233,
+    "area_in2": 3.94,
+    "notes": "9\" nominal depth, 13.4 lb/ft"
+  },
+  {
+    "designation": "C10x15.3",
+    "name": "C10x15.3",
+    "weight_lb_ft": 15.3,
+    "depth_d": 10.0,
+    "flange_width_bf": 2.600,
+    "flange_thickness_tf": 0.436,
+    "web_thickness_tw": 0.240,
+    "area_in2": 4.49,
+    "notes": "10\" nominal depth, 15.3 lb/ft"
+  },
+  {
+    "designation": "C12x20.7",
+    "name": "C12x20.7",
+    "weight_lb_ft": 20.7,
+    "depth_d": 12.0,
+    "flange_width_bf": 2.942,
+    "flange_thickness_tf": 0.501,
+    "web_thickness_tw": 0.282,
+    "area_in2": 6.09,
+    "notes": "12\" nominal depth, 20.7 lb/ft"
+  },
+  {
+    "designation": "C15x33.9",
+    "name": "C15x33.9",
+    "weight_lb_ft": 33.9,
+    "depth_d": 15.0,
+    "flange_width_bf": 3.400,
+    "flange_thickness_tf": 0.650,
+    "web_thickness_tw": 0.400,
+    "area_in2": 10.0,
+    "notes": "15\" nominal depth, 33.9 lb/ft"
+  }
+]

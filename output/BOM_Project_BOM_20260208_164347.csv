@@ -1,0 +1,6 @@
+Item #,Type,Description,Dimensions,Qty,Unit Wt (lb/ft),Total Wt (lb),Material
+1,MEP - Ductwork,Rectangular Duct - Elbow,"20.0""W x 20.0""H",2,,,
+2,MEP - Ductwork,Rectangular Duct - Straight,"20.0""W x 20.0""H, L: 8.0""",1,,,
+3,MEP - Ductwork,Rectangular Duct - Straight,"30.0""W x 30.0""H, L: 120.0""",1,,,
+4,Scene - Geometry,Mesh,,30,,,
+5,Sheet Metal,Sheet Metal Panel,,105,,,

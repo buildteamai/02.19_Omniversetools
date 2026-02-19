@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Standard Panel (48x96)",
+        "width": 48.0,
+        "height": 96.0,
+        "thickness": 0.125,
+        "break_len": 2.0,
+        "return_len": 0.5
+    },
+    {
+        "name": "Square Tile (24x24)",
+        "width": 24.0,
+        "height": 24.0,
+        "thickness": 0.125,
+        "break_len": 1.5,
+        "return_len": 0.5
+    },
+    {
+        "name": "Deep Pan (36x72)",
+        "width": 36.0,
+        "height": 72.0,
+        "thickness": 0.25,
+        "break_len": 4.0,
+        "return_len": 1.0
+    }
+]

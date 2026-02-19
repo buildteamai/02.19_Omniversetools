@@ -1,0 +1,64 @@
+[
+  {
+    "name": "Default",
+    "base": 100,
+    "height": 100,
+    "angle": -15,
+    "features": []
+  },
+  {
+    "name": "Tall Steep",
+    "base": 50,
+    "height": 200,
+    "angle": -5,
+    "features": []
+  },
+  {
+    "name": "Flat",
+    "base": 200,
+    "height": 50,
+    "angle": -30,
+    "features": []
+  },
+  {
+    "name": "Inverted",
+    "base": 50,
+    "height": 100,
+    "angle": 15,
+    "features": []
+  },
+  {
+    "name": "Large Base",
+    "base": 300,
+    "height": 150,
+    "angle": -20,
+    "features": []
+  },
+  {
+    "name": "Giza",
+    "base": 230,
+    "height": 146,
+    "angle": -51.85,
+    "features": []
+  },
+  {
+    "name": "Rounded Edges",
+    "base": 100,
+    "height": 100,
+    "angle": -15,
+    "features": [
+      { "type": "fillet", "edges": "vertical", "radius": 5.0, "enabled": true }
+    ]
+  },
+  {
+    "name": "Fully Rounded",
+    "base": 120,
+    "height": 100,
+    "angle": -18,
+    "features": [
+      { "type": "fillet", "edges": "vertical", "radius": 5.0, "enabled": true },
+      { "type": "fillet", "edges": "base", "radius": 3.0, "enabled": true },
+      { "type": "fillet", "edges": "top", "radius": 2.0, "enabled": true }
+    ]
+  }
+]

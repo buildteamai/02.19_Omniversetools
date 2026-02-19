@@ -1,0 +1,167 @@
+[
+    {
+        "designation": "HSS4x4x1/4",
+        "name": "HSS4x4x1/4",
+        "shape": "square",
+        "outer_width": 4.0,
+        "outer_height": 4.0,
+        "wall_thickness": 0.233,
+        "weight_lb_ft": 12.21,
+        "area_in2": 3.37,
+        "notes": "4x4 square tube, 1/4\" wall"
+    },
+    {
+        "designation": "HSS4x4x3/8",
+        "name": "HSS4x4x3/8",
+        "shape": "square",
+        "outer_width": 4.0,
+        "outer_height": 4.0,
+        "wall_thickness": 0.349,
+        "weight_lb_ft": 17.27,
+        "area_in2": 4.78,
+        "notes": "4x4 square tube, 3/8\" wall"
+    },
+    {
+        "designation": "HSS5x5x1/4",
+        "name": "HSS5x5x1/4",
+        "shape": "square",
+        "outer_width": 5.0,
+        "outer_height": 5.0,
+        "wall_thickness": 0.233,
+        "weight_lb_ft": 15.62,
+        "area_in2": 4.30,
+        "notes": "5x5 square tube, 1/4\" wall"
+    },
+    {
+        "designation": "HSS6x6x1/4",
+        "name": "HSS6x6x1/4",
+        "shape": "square",
+        "outer_width": 6.0,
+        "outer_height": 6.0,
+        "wall_thickness": 0.233,
+        "weight_lb_ft": 19.02,
+        "area_in2": 5.24,
+        "notes": "6x6 square tube, 1/4\" wall"
+    },
+    {
+        "designation": "HSS6x6x3/8",
+        "name": "HSS6x6x3/8",
+        "shape": "square",
+        "outer_width": 6.0,
+        "outer_height": 6.0,
+        "wall_thickness": 0.349,
+        "weight_lb_ft": 27.48,
+        "area_in2": 7.58,
+        "notes": "6x6 square tube, 3/8\" wall"
+    },
+    {
+        "designation": "HSS6x6x1/2",
+        "name": "HSS6x6x1/2",
+        "shape": "square",
+        "outer_width": 6.0,
+        "outer_height": 6.0,
+        "wall_thickness": 0.465,
+        "weight_lb_ft": 35.24,
+        "area_in2": 9.74,
+        "notes": "6x6 square tube, 1/2\" wall"
+    },
+    {
+        "designation": "HSS8x8x1/4",
+        "name": "HSS8x8x1/4",
+        "shape": "square",
+        "outer_width": 8.0,
+        "outer_height": 8.0,
+        "wall_thickness": 0.233,
+        "weight_lb_ft": 25.82,
+        "area_in2": 7.10,
+        "notes": "8x8 square tube, 1/4\" wall"
+    },
+    {
+        "designation": "HSS8x8x3/8",
+        "name": "HSS8x8x3/8",
+        "shape": "square",
+        "outer_width": 8.0,
+        "outer_height": 8.0,
+        "wall_thickness": 0.349,
+        "weight_lb_ft": 37.69,
+        "area_in2": 10.4,
+        "notes": "8x8 square tube, 3/8\" wall"
+    },
+    {
+        "designation": "HSS8x8x1/2",
+        "name": "HSS8x8x1/2",
+        "shape": "square",
+        "outer_width": 8.0,
+        "outer_height": 8.0,
+        "wall_thickness": 0.465,
+        "weight_lb_ft": 48.85,
+        "area_in2": 13.5,
+        "notes": "8x8 square tube, 1/2\" wall"
+    },
+    {
+        "designation": "HSS10x10x3/8",
+        "name": "HSS10x10x3/8",
+        "shape": "square",
+        "outer_width": 10.0,
+        "outer_height": 10.0,
+        "wall_thickness": 0.349,
+        "weight_lb_ft": 47.90,
+        "area_in2": 13.2,
+        "notes": "10x10 square tube, 3/8\" wall"
+    },
+    {
+        "designation": "HSS10x10x1/2",
+        "name": "HSS10x10x1/2",
+        "shape": "square",
+        "outer_width": 10.0,
+        "outer_height": 10.0,
+        "wall_thickness": 0.465,
+        "weight_lb_ft": 62.46,
+        "area_in2": 17.2,
+        "notes": "10x10 square tube, 1/2\" wall"
+    },
+    {
+        "designation": "HSS6x4x1/4",
+        "name": "HSS6x4x1/4",
+        "shape": "rectangular",
+        "outer_width": 6.0,
+        "outer_height": 4.0,
+        "wall_thickness": 0.233,
+        "weight_lb_ft": 15.62,
+        "area_in2": 4.30,
+        "notes": "6x4 rectangular tube, 1/4\" wall"
+    },
+    {
+        "designation": "HSS8x4x1/4",
+        "name": "HSS8x4x1/4",
+        "shape": "rectangular",
+        "outer_width": 8.0,
+        "outer_height": 4.0,
+        "wall_thickness": 0.233,
+        "weight_lb_ft": 19.02,
+        "area_in2": 5.24,
+        "notes": "8x4 rectangular tube, 1/4\" wall"
+    },
+    {
+        "designation": "HSS8x6x3/8",
+        "name": "HSS8x6x3/8",
+        "shape": "rectangular",
+        "outer_width": 8.0,
+        "outer_height": 6.0,
+        "wall_thickness": 0.349,
+        "weight_lb_ft": 32.58,
+        "area_in2": 8.97,
+        "notes": "8x6 rectangular tube, 3/8\" wall"
+    },
+    {
+        "designation": "HSS10x6x3/8",
+        "name": "HSS10x6x3/8",
+        "shape": "rectangular",
+        "outer_width": 10.0,
+        "outer_height": 6.0,
+        "wall_thickness": 0.349,
+        "weight_lb_ft": 37.69,
+        "area_in2": 10.4,
+        "notes": "10x6 rectangular tube, 3/8\" wall"
+    }
+]

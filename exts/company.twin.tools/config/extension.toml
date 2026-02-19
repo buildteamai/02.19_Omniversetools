@@ -1,0 +1,22 @@
+[package]
+version = "0.1.0"
+category = "Tools"
+title = "Twin Tools"
+description = "A collection of custom tools for the digital twin project."
+authors = ["BuildTeam AI"]
+repository = ""
+keywords = ["tools", "twin"]
+changelog = "docs/CHANGELOG.md"
+readme = "docs/README.md"
+icon = "data/icon.png"
+
+[dependencies]
+"omni.kit.uiapp" = {}
+"omni.kit.menu.utils" = {}
+"omni.warp" = {}
+
+[python.pip_dependencies]
+reportlab = "4.0.0"
+
+[[python.module]]
+name = "company.twin.tools"
