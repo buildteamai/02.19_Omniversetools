@@ -1,7 +1,7 @@
 import omni.ui as ui
 import omni.usd
 from pxr import Sdf
-from ..objects.screen_guard import ScreenGuard
+from ..objects.components.screen_guard import ScreenGuard
 from ..utils import usd_utils
 
 class ScreenGuardWindow(ui.Window):

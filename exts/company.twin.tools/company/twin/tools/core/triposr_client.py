@@ -6,7 +6,7 @@ Uses only stdlib (urllib) — no requests/httpx dependency needed in Kit.
 
 Two backends:
   - ``TripoSRClient``   — local FastAPI server (open-source TripoSR model)
-  - ``TripoCloudClient`` — Tripo cloud API (v2.5/v3.0 models, PBR textures)
+  - ``TripoCloudClient`` — Tripo cloud API (v3.0 default, PBR textures)
 
 Usage::
 
@@ -68,20 +68,25 @@ class TripoSRClient:
         mc_resolution: int = 256,
         output_format: str = "obj",
         timeout: float = 120.0,
+        bake_texture: bool = False,
+        texture_resolution: int = 1024,
     ) -> dict:
         """
         Send an image to the server and get back the generated mesh path.
 
         Args:
-            image_path:       Local path to the input image (.png, .jpg, etc.)
-            remove_bg:        Whether the server should remove background.
-            foreground_ratio: Foreground-to-image ratio (0.5–1.0).
-            mc_resolution:    Marching cubes grid resolution (32–320).
-            output_format:    "obj" or "glb".
-            timeout:          HTTP timeout in seconds.
+            image_path:         Local path to the input image (.png, .jpg, etc.)
+            remove_bg:          Whether the server should remove background.
+            foreground_ratio:   Foreground-to-image ratio (0.5–1.0).
+            mc_resolution:      Marching cubes grid resolution (32–320).
+            output_format:      "obj" or "glb".
+            timeout:            HTTP timeout in seconds.
+            bake_texture:       Whether to bake a texture atlas (OBJ only).
+            texture_resolution: Texture atlas resolution in pixels.
 
         Returns:
-            dict with keys: job_id, mesh_path, format, elapsed_seconds
+            dict with keys: job_id, mesh_path, format, elapsed_seconds,
+            and optionally texture_path.
             On error: dict with key "error".
         """
         if not os.path.exists(image_path):
@@ -93,6 +98,8 @@ class TripoSRClient:
             f"&foreground_ratio={foreground_ratio}"
             f"&mc_resolution={mc_resolution}"
             f"&output_format={output_format}"
+            f"&bake_texture={'true' if bake_texture else 'false'}"
+            f"&texture_resolution={texture_resolution}"
         )
         url = f"{self.base_url}/generate/json?{params}"
 
@@ -222,18 +229,30 @@ class TripoCloudClient:
         model_version: str = "v2.5-20250123",
         texture: bool = True,
         pbr: bool = True,
-        face_limit: int = 50000,
+        face_limit: int = -1,
+        texture_quality: str = "standard",
         timeout: float = 15.0,
     ) -> str:
-        """Submit an image_to_model task and return the task_id."""
+        """Submit an image_to_model task and return the task_id.
+
+        Args:
+            face_limit: Max polygon count.  -1 = adaptive (API decides), which
+                        produces the most complete geometry for complex scenes.
+                        Valid range: -1 to 500000.
+            texture_quality: "standard" or "detailed".
+        """
         payload = {
             "type": "image_to_model",
             "file": {"type": "image", "file_token": image_token},
             "model_version": model_version,
             "texture": texture,
             "pbr": pbr,
-            "face_limit": face_limit,
+            "texture_quality": texture_quality,
         }
+        # Only include face_limit when explicitly set; omitting it (or -1)
+        # lets the API adaptively determine the right polygon count.
+        if face_limit >= 0:
+            payload["face_limit"] = face_limit
         body = json.dumps(payload).encode()
         data = self._request(
             "POST", "/task",
@@ -298,12 +317,17 @@ class TripoCloudClient:
         model_version: str = "v2.5-20250123",
         texture: bool = True,
         pbr: bool = True,
-        face_limit: int = 50000,
+        face_limit: int = -1,
+        texture_quality: str = "standard",
         poll_interval: float = 3.0,
         timeout: float = 300.0,
     ) -> dict:
         """
         Full pipeline: upload → create task → poll → download GLB.
+
+        Args:
+            face_limit: -1 = adaptive (let API decide). 0-500000 = explicit cap.
+            texture_quality: "standard" or "detailed".
 
         Returns dict matching TripoSRClient.generate() shape:
             {mesh_path, job_id, elapsed_seconds, format}
@@ -323,6 +347,7 @@ class TripoCloudClient:
                 texture=texture,
                 pbr=pbr,
                 face_limit=face_limit,
+                texture_quality=texture_quality,
             )
             task_data = self._poll_task(task_id, poll_interval=poll_interval, timeout=timeout)
 

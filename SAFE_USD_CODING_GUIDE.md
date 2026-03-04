@@ -4,6 +4,10 @@
 
 This guide provides patterns for safe USD attribute access to prevent `TF_PYTHON_EXCEPTION` errors in Omniverse extensions.
 
+### Root Cause (Feb 2026 Fix)
+
+The `TF_PYTHON_EXCEPTION (secondary thread)` error was caused by calling `.Get()` on the result of `.GetAttribute()` without validating that the attribute exists and has a value. When `GetAttribute()` returns `None` or an invalid attribute, `.Get()` triggers a Python exception caught by USD's TensorFlow error handler. The "secondary thread" context indicates this occurred during `Tf.Notice.Register()` callbacks in the `PortDiscoveryWatcher`. **11 unsafe patterns** were fixed across `routing.py`, `audit.py`, and `dimensions_overlay.py`.
+
 ---
 
 ## ❌ NEVER Do This
@@ -304,7 +308,6 @@ Need to access USD attribute?
 
 ## Additional Resources
 
-- **Fix Report:** See `USD_EXCEPTION_FIX_REPORT.md` for detailed analysis of the issue
 - **Helper Module:** `company/twin/tools/antigravity/core/usd_helpers.py`
 - **USD Documentation:** [OpenUSD Docs](https://graphics.pixar.com/usd/docs/index.html)
 

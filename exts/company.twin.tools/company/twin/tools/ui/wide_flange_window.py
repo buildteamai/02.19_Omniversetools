@@ -1,6 +1,6 @@
 import omni.ui as ui
 import omni.usd
-from ..objects.wide_flange import WideFlangeGenerator
+from ..objects.structural.wide_flange import WideFlangeGenerator
 from ..utils import usd_utils
 from ..fabrication.drawings.wide_flange_drawing import WideFlangeDrawing
 from ..fabrication.drawings.base_drawing import DrawingMetadata

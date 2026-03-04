@@ -1,6 +1,6 @@
 import omni.ui as ui
 import omni.usd
-from ..objects.sheet_metal_panel import SheetMetalPanelGenerator
+from ..objects.components.sheet_metal_panel import SheetMetalPanelGenerator
 import json
 import os
 from pxr import Usd, UsdGeom, Gf, Sdf

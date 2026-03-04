@@ -1,7 +1,7 @@
 import warp as wp
 import numpy as np
 from pxr import Usd, UsdGeom, UsdShade, Vt, Gf, Sdf
-from ..utils.port import Port
+from ...utils.port import Port
 
 # Initialize Warp (safe to call multiple times in Omniverse)
 wp.init()

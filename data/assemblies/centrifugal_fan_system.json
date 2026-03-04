@@ -1,0 +1,80 @@
+{
+    "id": "centrifugal_fan_system",
+    "name": "Centrifugal Fan System",
+    "category": "MEP Systems/Fan",
+    "description": "Complete centrifugal fan with scroll housing, base frame, motor, and inlet duct",
+    "components": [
+        {
+            "id": "scroll_housing",
+            "entry_id": "__placeholder__",
+            "params": {
+                "width": 47,
+                "height": 54,
+                "depth": 32,
+                "label": "Scroll Housing (36\" Fan)"
+            },
+            "detail_level": 0,
+            "translate": [0, 0, 0],
+            "rotate": [0, 0, 0]
+        },
+        {
+            "id": "base_frame",
+            "entry_id": "__placeholder__",
+            "params": {
+                "width": 52,
+                "height": 6,
+                "depth": 42,
+                "label": "Base Frame (W8x31)"
+            },
+            "detail_level": 0,
+            "translate": [0, -3, 18],
+            "rotate": [0, 0, 0]
+        },
+        {
+            "id": "motor",
+            "entry_id": "__placeholder__",
+            "params": {
+                "width": 14,
+                "height": 14,
+                "depth": 22,
+                "label": "Motor (25 HP)"
+            },
+            "detail_level": 0,
+            "translate": [-38, 12, 18],
+            "rotate": [0, 0, 0]
+        },
+        {
+            "id": "drive_guard",
+            "entry_id": "__placeholder__",
+            "params": {
+                "width": 24,
+                "height": 20,
+                "depth": 18,
+                "label": "Belt Drive Guard"
+            },
+            "detail_level": 0,
+            "translate": [-22, 12, 18],
+            "rotate": [0, 0, 0]
+        },
+        {
+            "id": "inlet_duct",
+            "entry_id": "duct_straight",
+            "params": {
+                "width": 20,
+                "height": 20,
+                "length": 24,
+                "shape": "rectangular",
+                "add_flanges": true,
+                "radius": 0,
+                "angle_deg": 0
+            },
+            "detail_level": 0,
+            "translate": [0, 0, 0],
+            "rotate": [0, 0, 0]
+        }
+    ],
+    "connections": [],
+    "param_links": [],
+    "exposed_params": {},
+    "tags": ["fan", "centrifugal", "system", "complete", "HVAC"]
+}

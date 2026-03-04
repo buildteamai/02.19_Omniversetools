@@ -1,7 +1,7 @@
 import omni.ui as ui
 import omni.usd
 from pxr import UsdGeom, Sdf
-from ..objects.strongback import Strongback
+from ..objects.structural.strongback import Strongback
 from ..utils import usd_utils
 
 class StrongbackWindow(ui.Window):

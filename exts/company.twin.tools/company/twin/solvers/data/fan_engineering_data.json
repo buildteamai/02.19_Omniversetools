@@ -1,0 +1,105 @@
+{
+  "metadata": {
+    "description": "Fan engineering data for classification solver",
+    "sources": [
+      "AMCA 201-02: Fans and Systems",
+      "AMCA 203-90: Field Performance Measurement",
+      "Bleier, Fan Handbook, McGraw-Hill",
+      "Balje, Turbomachines, Wiley 1981",
+      "Cordier, VDI 1953",
+      "ASHRAE Handbook — HVAC Systems and Equipment, Ch. 20"
+    ]
+  },
+  "constants": {
+    "inwg_to_pa": 248.84,
+    "inwg_to_psf": 5.2023,
+    "m3s_to_cfm": 2118.88,
+    "air_hp_const": 6356.0,
+    "hp_to_kw": 0.7457,
+    "cordier_a": 1.137,
+    "cordier_b": 0.424
+  },
+  "ns_classification_ranges": [
+    {
+      "ns_min": 0,
+      "ns_max": 2000,
+      "fan_type": "RADIAL_BLADE",
+      "blade_angle_class": "RADIAL",
+      "blade_exit_angle_deg": 90,
+      "peak_efficiency": 0.55,
+      "typical_applications": [
+        "Material handling",
+        "Dust collection",
+        "High-pressure industrial"
+      ]
+    },
+    {
+      "ns_min": 2000,
+      "ns_max": 3200,
+      "fan_type": "BACKWARD_INCLINED",
+      "blade_angle_class": "BACKWARD",
+      "blade_exit_angle_deg": 60,
+      "peak_efficiency": 0.82,
+      "typical_applications": [
+        "HVAC supply/return",
+        "Clean air handling",
+        "General ventilation"
+      ]
+    },
+    {
+      "ns_min": 3200,
+      "ns_max": 4500,
+      "fan_type": "BACKWARD_CURVED",
+      "blade_angle_class": "BACKWARD",
+      "blade_exit_angle_deg": 45,
+      "peak_efficiency": 0.80,
+      "typical_applications": [
+        "Air handling units",
+        "Process ventilation",
+        "Moderate pressure systems"
+      ]
+    },
+    {
+      "ns_min": 4500,
+      "ns_max": 8000,
+      "fan_type": "FORWARD_CURVED",
+      "blade_angle_class": "FORWARD",
+      "blade_exit_angle_deg": 135,
+      "peak_efficiency": 0.63,
+      "typical_applications": [
+        "Residential HVAC",
+        "Packaged units",
+        "Low-pressure high-volume"
+      ]
+    }
+  ],
+  "stable_operating_ranges": {
+    "RADIAL_BLADE":      {"ns_min": 200,  "ns_max": 1800},
+    "BACKWARD_INCLINED": {"ns_min": 2200, "ns_max": 3000},
+    "BACKWARD_CURVED":   {"ns_min": 3400, "ns_max": 4200},
+    "FORWARD_CURVED":    {"ns_min": 5000, "ns_max": 7000}
+  },
+  "cordier_correlation": {
+    "equation": "Ds = 10^A / Ns^B",
+    "A": 1.137,
+    "B": 0.424,
+    "valid_ns_range": [200, 10000],
+    "notes": "Optimal specific diameter from Cordier diagram. Actual fans deviate ±15%."
+  },
+  "efficiency_derating": {
+    "model": "parabolic",
+    "equation": "eta = eta_peak × max(1 - 0.3 × x², 0.3)  where x = |Ns - Ns_mid| / (Ns_span/2)",
+    "notes": "Derating from peak efficiency as Ns deviates from center of type range"
+  },
+  "shaft_power": {
+    "equation_us": "HP = CFM × in.WG / (6356 × eta)",
+    "equation_si": "kW = (m3s × Pa) / (1000 × eta)",
+    "notes": "AMCA 203-90 §7. Does not include motor efficiency or drive losses."
+  },
+  "tip_speed_limits": {
+    "general_purpose_fts": 250,
+    "high_performance_fts": 350,
+    "structural_limit_fts": 450,
+    "notes": "Tip speed affects noise, stress, and balance requirements. AMCA 300 noise correlation."
+  }
+}

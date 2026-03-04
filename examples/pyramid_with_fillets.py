@@ -8,7 +8,7 @@ to create pyramids with filleted edges programmatically.
 import sys
 sys.path.append("C:/Programming/buildteamai/exts/company.twin.tools")
 
-from company.twin.tools.objects.pyramid import PyramidGenerator
+from company.twin.tools.objects.components.pyramid import PyramidGenerator
 import build123d as bd
 
 def example_1_vertical_fillet():

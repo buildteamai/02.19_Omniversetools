@@ -53,6 +53,34 @@ class _BackendModel(ui.AbstractItemModel):
         self._current.set_value(value)
 
 
+_TEXTURE_QUALITY_OPTIONS = ["standard", "detailed"]
+
+
+class _TexQualityItem(ui.AbstractItem):
+    def __init__(self, text):
+        super().__init__()
+        self.model = ui.SimpleStringModel(text)
+
+
+class _TextureQualityModel(ui.AbstractItemModel):
+    def __init__(self):
+        super().__init__()
+        self._items = [_TexQualityItem(t) for t in _TEXTURE_QUALITY_OPTIONS]
+        self._current = ui.SimpleIntModel(0)
+
+    def get_item_children(self, item):
+        return self._items if item is None else []
+
+    def get_item_value_model(self, item, column_id):
+        if item is None:
+            return self._current
+        return item.model
+
+    @property
+    def current_value(self):
+        return _TEXTURE_QUALITY_OPTIONS[self._current.as_int]
+
+
 class TripoSRWindow(ui.Window):
     def __init__(self, title="Image to 3D", **kwargs):
         super().__init__(title, width=420, height=460, **kwargs)
@@ -72,12 +100,15 @@ class TripoSRWindow(ui.Window):
 
         # Models — cloud
         self._api_key_model = ui.SimpleStringModel(saved_key)
-        self._face_limit_model = ui.SimpleIntModel(50000)
+        self._face_limit_model = ui.SimpleIntModel(-1)  # -1 = adaptive (API decides)
+        self._texture_quality_model = _TextureQualityModel()
 
         # Models — local
         self._server_model = ui.SimpleStringModel("http://127.0.0.1:8000")
         self._foreground_ratio_model = ui.SimpleFloatModel(0.85)
         self._resolution_model = ui.SimpleIntModel(320)
+        self._bake_texture_model = ui.SimpleBoolModel(True)
+        self._texture_res_model = ui.SimpleIntModel(1024)
 
         # State
         self._generating = False
@@ -114,7 +145,7 @@ class TripoSRWindow(ui.Window):
                     with ui.VStack(spacing=4):
                         with ui.HStack(height=22):
                             ui.Label("API Key:", width=100, style={"color": 0xFFAAAAAA})
-                            ui.StringField(model=self._api_key_model, password_mode=True)
+                            ui.StringField(model=self._api_key_model)
                             ui.Button("Test", width=50, clicked_fn=self._on_test_cloud)
 
                 # --- Local settings ---
@@ -132,9 +163,10 @@ class TripoSRWindow(ui.Window):
                 with ui.HStack(height=22):
                     ui.Label("Image Path:", width=100, style={"color": 0xFFAAAAAA})
                     ui.StringField(model=self._path_model)
+                    ui.Button("Browse...", width=65, clicked_fn=self._on_browse_image)
 
                 ui.Label(
-                    "Paste an absolute path to a .png or .jpg image.",
+                    "Select or paste an absolute path to an image file.",
                     style={"font_size": 11, "color": 0xFF666666},
                 )
 
@@ -156,8 +188,15 @@ class TripoSRWindow(ui.Window):
                             ui.Label("Face Limit:", width=140)
                             ui.IntSlider(
                                 model=self._face_limit_model,
-                                min=10000, max=100000, step=5000,
+                                min=-1, max=500000, step=10000,
                             )
+                        ui.Label(
+                            "-1 = Adaptive (recommended for complex scenes)",
+                            style={"font_size": 11, "color": 0xFF666666},
+                        )
+                        with ui.HStack(height=22):
+                            ui.Label("Texture Quality:", width=140)
+                            ui.ComboBox(self._texture_quality_model)
 
                 # --- Local params ---
                 self._local_params_frame = ui.Frame(visible=False)
@@ -174,6 +213,15 @@ class TripoSRWindow(ui.Window):
                             ui.IntSlider(
                                 model=self._resolution_model,
                                 min=32, max=320, step=32,
+                            )
+                        with ui.HStack(height=22):
+                            ui.Label("Bake Texture:", width=140)
+                            ui.CheckBox(model=self._bake_texture_model)
+                        with ui.HStack(height=22):
+                            ui.Label("Texture Resolution:", width=140)
+                            ui.IntSlider(
+                                model=self._texture_res_model,
+                                min=256, max=2048, step=256,
                             )
 
                 ui.Spacer(height=8)
@@ -219,6 +267,38 @@ class TripoSRWindow(ui.Window):
         settings = carb.settings.get_settings()
         settings.set(_SETTINGS_API_KEY, key)
 
+    def _on_browse_image(self):
+        """Open a file picker dialog filtered to image files."""
+        try:
+            from omni.kit.window.filepicker import FilePickerDialog
+
+            def _on_apply(filename, dirname):
+                if filename and dirname:
+                    full_path = os.path.join(dirname, filename)
+                    self._path_model.set_value(full_path)
+                self._file_picker.hide()
+
+            def _on_cancel(filename, dirname):
+                self._file_picker.hide()
+
+            _IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp")
+
+            def _filter(item):
+                if item.is_folder:
+                    return True
+                return item.path.lower().endswith(_IMAGE_EXTS)
+
+            self._file_picker = FilePickerDialog(
+                "Select Image",
+                apply_button_label="Select",
+                click_apply_handler=_on_apply,
+                click_cancel_handler=_on_cancel,
+                item_filter_fn=_filter,
+            )
+            self._file_picker.show()
+        except ImportError:
+            self._set_status("File picker not available — enter path manually.")
+
     # ------------------------------------------------------------------
     # Test buttons
     # ------------------------------------------------------------------
@@ -261,7 +341,9 @@ class TripoSRWindow(ui.Window):
             self._set_status(f"File not found: {image_path}")
             return
 
-        is_cloud = self._backend_model.current_index == _BACKEND_CLOUD
+        idx = self._backend_model.current_index
+        is_cloud = idx == _BACKEND_CLOUD
+        print(f"[TripoSR] Backend index={idx}, is_cloud={is_cloud}")
 
         if is_cloud:
             key = self._api_key_model.as_string.strip()
@@ -287,10 +369,13 @@ class TripoSRWindow(ui.Window):
         params = {"image_path": image_path, "is_cloud": is_cloud}
         if is_cloud:
             params["face_limit"] = self._face_limit_model.as_int
+            params["texture_quality"] = self._texture_quality_model.current_value
         else:
             params["remove_bg"] = self._remove_bg_model.as_bool
             params["foreground_ratio"] = self._foreground_ratio_model.as_float
             params["mc_resolution"] = self._resolution_model.as_int
+            params["bake_texture"] = self._bake_texture_model.as_bool
+            params["texture_resolution"] = self._texture_res_model.as_int
 
         thread = threading.Thread(target=self._generate_worker, args=(params,), daemon=True)
         thread.start()
@@ -301,6 +386,7 @@ class TripoSRWindow(ui.Window):
             result = self._cloud_client.generate(
                 image_path=params["image_path"],
                 face_limit=params["face_limit"],
+                texture_quality=params["texture_quality"],
             )
         else:
             result = self._local_client.generate(
@@ -309,6 +395,8 @@ class TripoSRWindow(ui.Window):
                 foreground_ratio=params["foreground_ratio"],
                 mc_resolution=params["mc_resolution"],
                 output_format="obj",
+                bake_texture=params["bake_texture"],
+                texture_resolution=params["texture_resolution"],
             )
 
         async def _do_import():
@@ -335,12 +423,14 @@ class TripoSRWindow(ui.Window):
             self._set_status("Error: mesh file not found on disk")
             return
 
+        texture_path = result.get("texture_path")
         self._set_status(f"Importing mesh ({elapsed}s inference)...")
 
         success = self._importer.import_to_stage(
             mesh_path,
             target_path="/World/TripoSR",
             source_tag="triposr",
+            texture_path=texture_path,
         )
 
         if success:

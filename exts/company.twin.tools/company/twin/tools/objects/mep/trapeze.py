@@ -1,5 +1,5 @@
 from build123d import *
-from ..utils import usd_utils
+from ...utils import usd_utils
 import omni.usd
 from pxr import UsdGeom, Sdf, Gf
 
@@ -26,6 +26,7 @@ class Trapeze:
         strut_width=1.625,
         strut_height=1.625,
         strut_gauge="12 Ga",
+        assigned_duct_path="",
     ):
         GAUGE_MAP = {
             "16 Ga": 0.0598,
@@ -152,6 +153,8 @@ class Trapeze:
                 prim.CreateAttribute("custom:rod_diameter", Sdf.ValueTypeNames.Double).Set(rod_diameter)
                 prim.CreateAttribute("custom:strut_length", Sdf.ValueTypeNames.Double).Set(strut_length)
                 prim.CreateAttribute("custom:generatorType", Sdf.ValueTypeNames.String).Set("Trapeze")
+                if assigned_duct_path:
+                    prim.CreateAttribute("custom:assigned_duct_path", Sdf.ValueTypeNames.String).Set(assigned_duct_path)
 
             return mesh_prim
 

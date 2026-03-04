@@ -11,7 +11,7 @@ import omni.ui as ui
 from pxr import Usd, UsdGeom, Gf, Sdf
 import omni.usd
 
-from ..objects.hss_tube import HSSGenerator
+from ..objects.structural.hss_tube import HSSGenerator
 
 
 class ComboItem(ui.AbstractItem):

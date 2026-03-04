@@ -1,10 +1,11 @@
 import omni.ui as ui
 import omni.usd
-from pxr import Gf, UsdGeom, Usd
+from pxr import Gf, UsdGeom, Usd, Tf, Sdf
 import json
 import os
 import math
-from ..objects.duct_warp import DuctWarpGenerator
+from ..objects.mep.duct_warp import DuctWarpGenerator
+from ..objects.mep.trapeze import Trapeze
 from ..core.smacna import SMACNADuctSizer, PressureClass
 
 DATA_PATH = "c:/Programming/buildteamai/data/ducts.json"
@@ -71,10 +72,18 @@ class DuctWindow(ui.Window):
         self._gauge_label = None
         self._stiffener_label = None
         
-        # Edit mode tracking
-        self._editing_prim_path = None
+        # Trapeze support generation
+        self._add_trapeze_model = ui.SimpleBoolModel(True)
+        self._trapeze_drop_length_model = ui.SimpleFloatModel(36.0)
+
+        # Edit mode tracking — list supports single and multi-select
+        self._editing_prim_paths = []
         self._create_button = None
         self._status_label = None
+
+        # Chain propagation — flag suppresses notice handler during code-driven writes
+        self._updating = False
+        self._notice_listener = None
         
         # Load variants
         self._variants = self._load_variants()
@@ -257,7 +266,17 @@ class DuctWindow(ui.Window):
                         ui.Label("Add Flanges:", width=100)
                         ui.CheckBox(model=self._add_flanges_model)
                         self._flange_label = ui.Label("(angle iron)", style={"color": 0xFF888888})
-                        
+
+                    with ui.HStack(height=22):
+                        ui.Label("Add Trapezes:", width=100)
+                        ui.CheckBox(model=self._add_trapeze_model)
+                        ui.Label("(straight only)", style={"color": 0xFF888888})
+
+                    with ui.HStack(height=22):
+                        ui.Label("  Drop Length:", width=100)
+                        ui.FloatDrag(model=self._trapeze_drop_length_model, min=6.0, max=120.0)
+                        ui.Label("in", width=20, style={"color": 0xFF888888})
+
                     ui.Spacer(height=10)
                     ui.Separator(height=5)
                     ui.Spacer(height=10)
@@ -332,7 +351,13 @@ class DuctWindow(ui.Window):
             self._round_fields.visible = is_round
             
     def _on_load_selected(self):
-        """Loads parameters from selected duct prim"""
+        """Loads parameters from all selected duct prims.
+
+        Cross-section params (width/height/diameter) are read from the first
+        valid duct and shown in the UI — these are the bulk-apply fields.
+        Per-duct params (length, radius, angle, segments) are preserved from
+        each duct's own metadata at update time.
+        """
         try:
             ctx = omni.usd.get_context()
             stage = ctx.get_stage()
@@ -340,86 +365,70 @@ class DuctWindow(ui.Window):
                 self._status_label.text = "Error: No USD Stage open"
                 return
 
-            selection = ctx.get_selection()
-            selected_paths = selection.get_selected_prim_paths()
+            self._ensure_stage_subscription(stage)
 
+            selected_paths = ctx.get_selection().get_selected_prim_paths()
             if not selected_paths:
                 self._status_label.text = "No prim selected"
                 return
 
-            # Get first selected prim
-            prim_path = selected_paths[0]
-            prim = stage.GetPrimAtPath(prim_path)
+            valid_types = {'duct_bent', 'duct_straight', 'duct_round_bent', 'duct_round_straight'}
+            valid_paths = []
+            for prim_path in selected_paths:
+                prim = stage.GetPrimAtPath(prim_path)
+                if prim and prim.GetCustomData().get('generatorType') in valid_types:
+                    valid_paths.append(prim_path)
 
-            if not prim:
-                self._status_label.text = f"Error: Could not get prim at {prim_path}"
+            if not valid_paths:
+                self._status_label.text = "No duct prims in selection"
                 return
 
-            # Check if it's a duct
-            custom_data = prim.GetCustomData()
-            generator_type = custom_data.get('generatorType')
+            # Load cross-section UI from first valid duct
+            first = stage.GetPrimAtPath(valid_paths[0])
+            cd = first.GetCustomData()
+            gen_type = cd.get('generatorType', 'duct_straight')
+            is_straight_type = 'straight' in gen_type
+            shape_str = cd.get('shape', 'rectangular')
+            is_round = (shape_str == 'round') or ('round' in gen_type)
 
-            valid_types = ['duct_bent', 'duct_straight', 'duct_round_bent', 'duct_round_straight']
-            if generator_type not in valid_types:
-                self._status_label.text = f"Selected prim is not a duct (type: {generator_type})"
-                return
-
-            # Determine Type (Straight vs Elbow)
-            is_straight_type = 'straight' in str(generator_type)
-            
-            # Load parameters
-            width = custom_data.get('width', 20.0)
-            height = custom_data.get('height', 10.0)
-            radius = custom_data.get('radius', 30.0)
-            angle = custom_data.get('angle', 90.0)
-            segments = custom_data.get('segments', 20)
-            add_flanges = custom_data.get('add_flanges', True)
-            length = custom_data.get('length', 24.0)
-            diameter = custom_data.get('diameter', 12.0)
-            shape_str = custom_data.get('shape', 'rectangular')
-
-            # Update UI models
-            is_round = (shape_str == 'round') or ('round' in str(generator_type))
-            
             if is_round:
                 self._shape_index.as_int = 1
-                self._diameter_model.as_float = float(diameter)
+                self._diameter_model.as_float = float(cd.get('diameter', 12.0))
             else:
                 self._shape_index.as_int = 0
-                self._width_model.as_float = float(width)
-                self._height_model.as_float = float(height)
-            
-            # Update Type Index (0=Straight, 1=Elbow)
+                self._width_model.as_float = float(cd.get('width', 20.0))
+                self._height_model.as_float = float(cd.get('height', 10.0))
+
             self._type_index.as_int = 0 if is_straight_type else 1
-            
-            # Manually trigger visibility updates
             self._on_shape_changed(self._shape_index.as_int)
             self._on_type_changed(self._type_index.as_int)
 
-            self._radius_model.as_float = float(radius)
-            self._angle_model.as_float = float(angle)
-            self._segments_model.as_int = int(segments)
-            self._add_flanges_model.as_bool = bool(add_flanges)
-            self._length_model.as_float = float(length)
+            self._radius_model.as_float = float(cd.get('radius', 30.0))
+            self._angle_model.as_float = float(cd.get('angle', 90.0))
+            self._segments_model.as_int = int(cd.get('segments', 20))
+            self._add_flanges_model.as_bool = bool(cd.get('add_flanges', True))
+            self._length_model.as_float = float(cd.get('length', 24.0))
 
-            # Set edit mode
-            self._editing_prim_path = prim_path
+            self._editing_prim_paths = valid_paths
+            count = len(valid_paths)
+            skipped = len(selected_paths) - count
+
             if self._create_button:
-                self._create_button.text = "Update Duct"
+                self._create_button.text = "Update Duct" if count == 1 else f"Update Ducts ({count})"
 
-            self._status_label.text = f"Loaded from {prim_path}"
-            print(f"Loaded duct from {prim_path} (Type: {'Straight' if is_straight_type else 'Elbow'})")
-            print(f"  W={width}, H={height}, R={radius}, Angle={angle}°, Segments={segments}")
+            skip_note = f", {skipped} non-duct skipped" if skipped else ""
+            self._status_label.text = f"Loaded {count} duct(s){skip_note}"
+            print(f"[Duct] Loaded {count} duct(s) for bulk edit: {valid_paths}")
 
         except Exception as e:
             self._status_label.text = f"Error loading: {str(e)}"
-            print(f"Error loading selected duct: {e}")
+            print(f"Error loading selected duct(s): {e}")
             import traceback
             traceback.print_exc()
     
     def _on_clear(self):
         """Clears edit mode and resets to create mode"""
-        self._editing_prim_path = None
+        self._editing_prim_paths = []
         if self._create_button:
             self._create_button.text = "Generate Duct"
         self._status_label.text = "Ready to create new duct"
@@ -430,202 +439,479 @@ class DuctWindow(ui.Window):
         if not stage:
             self._status_label.text = "Error: No Stage Open"
             return
-        
-        is_update = self._editing_prim_path is not None
-        action = "Updating" if is_update else "Creating"
-        
-        # Determine path
-        # Determine path
-        current_transform = []
-        if is_update:
-            path = self._editing_prim_path
-            # Capture transform before removing
-            from ..utils import usd_utils
-            prim = stage.GetPrimAtPath(path)
-            if prim:
-                current_transform = usd_utils.get_local_transform(prim)
-            
-            # Remove old prim
-            stage.RemovePrim(path)
-        else:
+
+        from ..utils import usd_utils
+
+        # === CREATE NEW (no ducts loaded) ===
+        if not self._editing_prim_paths:
             path_root = "/World/Duct"
             path = path_root
             idx = 1
             while stage.GetPrimAtPath(path):
                 path = f"{path_root}_{idx}"
                 idx += 1
-            
+            try:
+                shape = "round" if self._shape_index.as_int == 1 else "rectangular"
+                is_straight = (self._type_index.as_int == 0)
+                angle_val = 0.0 if is_straight else self._angle_model.as_float
+
+                DuctWarpGenerator.create(
+                    stage, path,
+                    width=self._width_model.as_float,
+                    height=self._height_model.as_float,
+                    radius=self._radius_model.as_float,
+                    angle_deg=angle_val,
+                    segments=self._segments_model.as_int,
+                    add_flanges=self._add_flanges_model.as_bool,
+                    length=self._length_model.as_float,
+                    shape=shape,
+                    diameter=self._diameter_model.as_float,
+                )
+
+                if self._add_trapeze_model.as_bool and is_straight:
+                    self._generate_trapezes(
+                        stage, path,
+                        width=self._width_model.as_float,
+                        height=self._height_model.as_float,
+                        length=self._length_model.as_float,
+                        shape=shape,
+                        diameter=self._diameter_model.as_float,
+                        drop_length=self._trapeze_drop_length_model.as_float,
+                    )
+
+                self._status_label.text = f"Created at {path}"
+                print(f"[Duct] Created at {path}")
+
+            except Exception as e:
+                self._status_label.text = f"Error: {str(e)}"
+                print(f"[Duct] {e}")
+                import traceback
+                traceback.print_exc()
+            return
+
+        # === UPDATE — single or bulk ===
+        # Bulk params: cross-section + length applied to every duct
+        # Per-duct params: radius, angle, segments, shape — read from each duct's metadata
+        self._ensure_stage_subscription(stage)
+
+        bulk_width       = self._width_model.as_float
+        bulk_height      = self._height_model.as_float
+        bulk_diameter    = self._diameter_model.as_float
+        bulk_length      = self._length_model.as_float
+        bulk_add_flanges = self._add_flanges_model.as_bool
+        bulk_add_trapezes = self._add_trapeze_model.as_bool
+        bulk_drop_length = self._trapeze_drop_length_model.as_float
+
+        updated = 0
+        errors  = 0
+
+        self._updating = True
         try:
-            # Determine shape
-            shape = "round" if self._shape_index.as_int == 1 else "rectangular"
-            
-            # Determine Type (Straight vs Elbow)
-            is_straight = (self._type_index.as_int == 0)
-            
-            # If Straight, Force Angle = 0. If Elbow, use Angle model.
-            angle_val = 0.0 if is_straight else self._angle_model.as_float
-            
-            DuctWarpGenerator.create(
-                stage, 
-                path,
-                width=self._width_model.as_float,
-                height=self._height_model.as_float,
-                radius=self._radius_model.as_float,
-                angle_deg=angle_val,
-                segments=self._segments_model.as_int,
-                add_flanges=self._add_flanges_model.as_bool,
-                length=self._length_model.as_float,
-                shape=shape,
-                diameter=self._diameter_model.as_float
+            for prim_path in self._editing_prim_paths:
+                try:
+                    prim = stage.GetPrimAtPath(prim_path)
+                    if not prim:
+                        print(f"[Duct] Prim not found: {prim_path}")
+                        errors += 1
+                        continue
+
+                    # Read per-duct params and mate links from metadata before deletion
+                    cd = prim.GetCustomData()
+                    gen_type     = cd.get('generatorType', 'duct_straight')
+                    per_length   = bulk_length
+                    per_radius   = float(cd.get('radius',   self._radius_model.as_float))
+                    per_angle    = float(cd.get('angle',    90.0))
+                    per_segments = int(cd.get('segments',   self._segments_model.as_int))
+                    per_shape_str  = cd.get('shape', 'rectangular')
+                    per_is_round   = (per_shape_str == 'round') or ('round' in gen_type)
+                    per_is_straight = 'straight' in gen_type
+                    per_shape      = 'round' if per_is_round else 'rectangular'
+                    per_angle_val  = 0.0 if per_is_straight else per_angle
+
+                    # Save mate chain links — lost when prim is deleted
+                    saved_downstream = cd.get('mate_downstream', '')
+                    saved_upstream   = cd.get('mate_upstream',   '')
+
+                    # Capture transform; children (trapezes) deleted with prim
+                    current_transform = usd_utils.get_local_transform(prim)
+                    stage.RemovePrim(prim_path)
+
+                    DuctWarpGenerator.create(
+                        stage, prim_path,
+                        width=bulk_width,
+                        height=bulk_height,
+                        radius=per_radius,
+                        angle_deg=per_angle_val,
+                        segments=per_segments,
+                        add_flanges=bulk_add_flanges,
+                        length=per_length,
+                        shape=per_shape,
+                        diameter=bulk_diameter,
+                    )
+
+                    new_prim = stage.GetPrimAtPath(prim_path)
+
+                    # --- 6DOF positioning ---
+                    # If upstream mate exists, let _apply_mate_positions compute
+                    # the transform from scratch (avoids xformOp conflicts with
+                    # set_local_transform + XformCommonAPI).
+                    # Otherwise fall back to the saved local transform.
+                    if saved_upstream and new_prim:
+                        us_prim = stage.GetPrimAtPath(saved_upstream)
+                        if us_prim:
+                            ok = self._apply_mate_positions(stage, us_prim, new_prim)
+                            if not ok and current_transform:
+                                usd_utils.set_local_transform(new_prim, current_transform)
+                                print(f"[Duct] Upstream anchors missing, fell back to saved transform")
+                        elif current_transform:
+                            usd_utils.set_local_transform(new_prim, current_transform)
+                    elif new_prim and current_transform:
+                        usd_utils.set_local_transform(new_prim, current_transform)
+
+                    # Restore mate chain links onto the new prim
+                    if new_prim and (saved_downstream or saved_upstream):
+                        new_cd = dict(new_prim.GetCustomData())
+                        if saved_downstream:
+                            new_cd['mate_downstream'] = saved_downstream
+                        if saved_upstream:
+                            new_cd['mate_upstream'] = saved_upstream
+                        new_prim.SetCustomData(new_cd)
+
+                    if bulk_add_trapezes and per_is_straight:
+                        self._generate_trapezes(
+                            stage, prim_path,
+                            width=bulk_width,
+                            height=bulk_height,
+                            length=per_length,
+                            shape=per_shape,
+                            diameter=bulk_diameter,
+                            drop_length=bulk_drop_length,
+                        )
+
+                    # Cascade 6DOF downstream through the chain
+                    if saved_downstream:
+                        self._propagate_chain(stage, prim_path)
+
+                    updated += 1
+                    print(f"[Duct] Updated {prim_path} (W={bulk_width}, H={bulk_height}, L={bulk_length})")
+
+                except Exception as e:
+                    errors += 1
+                    print(f"[Duct] Error updating {prim_path}: {e}")
+                    import traceback
+                    traceback.print_exc()
+        finally:
+            self._updating = False
+
+        noun = "duct" if updated == 1 else "ducts"
+        if errors == 0:
+            self._status_label.text = f"Updated {updated} {noun}"
+        else:
+            self._status_label.text = f"Updated {updated}/{len(self._editing_prim_paths)}, {errors} error(s)"
+        print(f"[Duct] Bulk update complete: {updated} updated, {errors} errors")
+
+    def _calculate_trapeze_positions(self, length):
+        """Return X positions (inches) for trapeze placement along a straight duct.
+
+        Rules:
+          <= 72"  (6 ft) : one trapeze at mid-span
+          >  72"         : third-point spacing, capped at 48" (4 ft) max interval
+        """
+        if length <= 72.0:
+            return [length / 2.0]
+        spacing = length / 3.0
+        if spacing > 48.0:
+            spacing = 48.0
+        positions = []
+        x = spacing
+        while x < length - 1.0:
+            positions.append(x)
+            x += spacing
+        return positions
+
+    def _generate_trapezes(self, stage, duct_path, width, height, length, shape, diameter, drop_length):
+        """Create trapeze child prims under the duct prim."""
+        positions = self._calculate_trapeze_positions(length)
+        strut_height = 1.625  # default strut channel height
+
+        if shape == "round":
+            span = diameter + 4.0
+            cradle_y = -(diameter / 2.0 + strut_height)
+        else:
+            span = width + 4.0
+            cradle_y = -(height / 2.0 + strut_height)
+
+        for i, x_pos in enumerate(positions):
+            trap_name = "Trapeze" if i == 0 else f"Trapeze_{i}"
+            trap_path = f"{duct_path}/{trap_name}"
+
+            result = Trapeze.create(
+                stage, trap_path,
+                span=span,
+                cantilever=2.0,
+                drop_length=drop_length,
+                rod_diameter=0.5,
+                strut_gauge="12 Ga",
+                assigned_duct_path=duct_path,
             )
-            
-            # Restore Transform if we captured one
-            from ..utils import usd_utils
-            if current_transform:
-                new_prim = stage.GetPrimAtPath(path)
-                if new_prim:
-                    usd_utils.set_local_transform(new_prim, current_transform)
-            elif not is_update:
-                # Smart Placement (Optional): Place near selection if new?
-                # For now, let it spawn at origin or user can move it.
-                pass
-            
-            action_past = "Updated" if is_update else "Created"
-            self._status_label.text = f"{action_past} at {path}"
-            print(f"{action_past} duct at {path}")
-            
-            # If we were updating, stay in edit mode
-            if is_update:
-                print(f"  Still editing {path} - modify and click 'Update Duct' again, or 'Clear' to create new")
-                
-        except Exception as e:
-            self._status_label.text = f"Error: {str(e)}"
-            print(f"[Duct] {e}")
-            import traceback
-            traceback.print_exc()
 
-    def _on_mate_selected(self):
-        """
-        Mates two selected ducts by aligning their closest anchors.
-        """
-        ctx = omni.usd.get_context()
-        stage = ctx.get_stage()
-        selection = ctx.get_selection().get_selected_prim_paths()
-        
-        if len(selection) != 2:
-            self._status_label.text = "Select exactly 2 ducts to mate"
+            if result:
+                prim = stage.GetPrimAtPath(trap_path)
+                if prim:
+                    xform_api = UsdGeom.XformCommonAPI(prim)
+                    xform_api.SetTranslate(Gf.Vec3d(x_pos, cradle_y, 0.0))
+                    print(f"[Trapeze] {trap_name} at X={x_pos:.1f}\" Y={cradle_y:.1f}\" under {duct_path}")
+
+        count = len(positions)
+        print(f"[Trapeze] Generated {count} trapeze(s) for {duct_path}")
+
+    # ── Stage subscription ────────────────────────────────────────────────────
+
+    def _ensure_stage_subscription(self, stage):
+        """Subscribe once to USD object changes for manual-move detection."""
+        if self._notice_listener is not None:
             return
-            
-        prim_a = stage.GetPrimAtPath(selection[0])
-        prim_b = stage.GetPrimAtPath(selection[1])
-        
-        if not prim_a or not prim_b:
+        self._notice_listener = Tf.Notice.Register(
+            Usd.Notice.ObjectsChanged,
+            self._on_objects_changed,
+            stage,
+        )
+
+    def _on_objects_changed(self, notice, stage):
+        """Detect user-driven xform changes on duct prims and clear mate links."""
+        if self._updating:
             return
 
-        # Find anchors for both objects
+        valid_gen_types = {
+            'duct_bent', 'duct_straight', 'duct_round_bent', 'duct_round_straight'
+        }
+        cleared = set()
+
+        for path in notice.GetChangedInfoOnlyPaths():
+            if not path.IsPropertyPath():
+                continue
+            if 'xformOp' not in path.name:
+                continue
+
+            prim_path = path.GetPrimPath()
+            prim_path_str = str(prim_path)
+            if prim_path_str in cleared:
+                continue
+
+            prim = stage.GetPrimAtPath(prim_path)
+            if not prim:
+                continue
+            if prim.GetCustomData().get('generatorType') not in valid_gen_types:
+                continue
+
+            self._clear_mate_relationship(stage, prim_path_str)
+            cleared.add(prim_path_str)
+
+    def _clear_mate_relationship(self, stage, prim_path_str):
+        """Disconnect a duct from its chain at both ends."""
+        self._updating = True
+        try:
+            prim = stage.GetPrimAtPath(prim_path_str)
+            if not prim:
+                return
+
+            cd = dict(prim.GetCustomData())
+            downstream = cd.pop('mate_downstream', '')
+            upstream   = cd.pop('mate_upstream',   '')
+            prim.SetCustomData(cd)
+
+            if downstream:
+                ds = stage.GetPrimAtPath(downstream)
+                if ds:
+                    ds_cd = dict(ds.GetCustomData())
+                    ds_cd.pop('mate_upstream', None)
+                    ds.SetCustomData(ds_cd)
+
+            if upstream:
+                us = stage.GetPrimAtPath(upstream)
+                if us:
+                    us_cd = dict(us.GetCustomData())
+                    us_cd.pop('mate_downstream', None)
+                    us.SetCustomData(us_cd)
+
+            if downstream or upstream:
+                print(f"[Mate] Cleared relationship for {prim_path_str}")
+        finally:
+            self._updating = False
+
+    # ── Core mate alignment ───────────────────────────────────────────────────
+
+    def _apply_mate_positions(self, stage, prim_a, prim_b):
+        """6DOF-align prim_b's Anchor_Start to prim_a's Anchor_End.
+
+        Returns True on success, False if anchors are missing.
+        """
         def get_anchor(prim, name):
             for child in prim.GetChildren():
                 if child.GetName() == name:
                     return child
             return None
-        
-        # For proper HVAC airflow:
-        # Duct A's EXIT (Anchor_End) connects to Duct B's ENTRY (Anchor_Start)
-        # This means B moves so its Start aligns with A's End
-        
-        anchor_a = get_anchor(prim_a, "Anchor_End")  # Exit of first duct
-        anchor_b = get_anchor(prim_b, "Anchor_Start")  # Entry of second duct
-        
-        if not anchor_a:
-            self._status_label.text = "First duct has no Anchor_End (exit)"
-            return
-        if not anchor_b:
-            self._status_label.text = "Second duct has no Anchor_Start (entry)"
-            return
-            
-        # === Full 6DOF Mating ===
-        # Goal: Move and Rotate B so its Anchor_Start aligns with A's Anchor_End
-        # The anchors face OUTWARD (+X in their local frame)
-        # For mating, B's anchor should face OPPOSITE to A's anchor (they face each other)
-        
-        print("[Mate] === Starting 6DOF Mate ===")
-        
-        # 1. Get world transforms of both anchors
+
+        anchor_a = get_anchor(prim_a, "Anchor_End")
+        anchor_b = get_anchor(prim_b, "Anchor_Start")
+        if not anchor_a or not anchor_b:
+            return False
+
         mat_anchor_a = omni.usd.get_world_transform_matrix(anchor_a)
         mat_anchor_b = omni.usd.get_world_transform_matrix(anchor_b)
-        mat_duct_b = omni.usd.get_world_transform_matrix(prim_b)
-        
+        mat_duct_b   = omni.usd.get_world_transform_matrix(prim_b)
+
         pos_anchor_a = mat_anchor_a.ExtractTranslation()
         pos_anchor_b = mat_anchor_b.ExtractTranslation()
-        pos_duct_b = mat_duct_b.ExtractTranslation()
-        
-        print(f"[Mate] Anchor A pos: {pos_anchor_a}")
-        print(f"[Mate] Anchor B pos: {pos_anchor_b}")
-        print(f"[Mate] Duct B pos: {pos_duct_b}")
-        
-        # 2. Extract directions (X-axis of each anchor in world space)
-        # The first column of the rotation matrix is the X-axis
+        pos_duct_b   = mat_duct_b.ExtractTranslation()
+
         rot_a = mat_anchor_a.ExtractRotationMatrix()
         rot_b = mat_anchor_b.ExtractRotationMatrix()
-        
-        dir_a = Gf.Vec3d(rot_a.GetColumn(0))  # A's exit direction
-        dir_b = Gf.Vec3d(rot_b.GetColumn(0))  # B's entry direction
-        
-        print(f"[Mate] Dir A (exit): {dir_a}")
-        print(f"[Mate] Dir B (entry): {dir_b}")
-        
-        # 3. Calculate required rotation
-        # We want dir_b to become -dir_a (opposite directions)
-        # Rotation from dir_b to -dir_a
+        dir_a = Gf.Vec3d(rot_a.GetColumn(0))
+        dir_b = Gf.Vec3d(rot_b.GetColumn(0))
+
         target_dir = -dir_a
-        
-        # Calculate rotation axis and angle
         dot = Gf.Dot(dir_b, target_dir)
-        
+
         if dot > 0.9999:
-            # Already aligned, no rotation needed
             rotation_to_apply = Gf.Rotation()
-            print("[Mate] Already aligned, no rotation needed")
         elif dot < -0.9999:
-            # Opposite directions, rotate 180 around Z
             rotation_to_apply = Gf.Rotation(Gf.Vec3d(0, 0, 1), 180)
-            print("[Mate] Opposite, rotating 180 around Z")
         else:
-            # General case: rotate around the cross product
-            axis = Gf.Cross(dir_b, target_dir).GetNormalized()
-            angle = math.degrees(math.acos(max(-1.0, min(1.0, dot))))  # Clamp for numerical stability
+            axis  = Gf.Cross(dir_b, target_dir).GetNormalized()
+            angle = math.degrees(math.acos(max(-1.0, min(1.0, dot))))
             rotation_to_apply = Gf.Rotation(axis, angle)
-            print(f"[Mate] Rotating {angle:.1f} deg around {axis}")
-        
-        # 4. Apply rotation to duct B
-        # Get current rotation of duct B
-        current_rot = mat_duct_b.ExtractRotation()
-        new_rot = rotation_to_apply * current_rot
-        
-        # Convert to Euler angles (XYZ)
+
+        new_rot   = rotation_to_apply * mat_duct_b.ExtractRotation()
         new_euler = new_rot.Decompose(Gf.Vec3d.XAxis(), Gf.Vec3d.YAxis(), Gf.Vec3d.ZAxis())
-        print(f"[Mate] New rotation (Euler XYZ): {new_euler}")
-        
+
+        local_offset   = pos_anchor_b - pos_duct_b
+        rot_mat        = Gf.Matrix4d().SetRotate(rotation_to_apply)
+        rotated_offset = rot_mat.TransformDir(local_offset)
+        new_pos        = pos_anchor_a - rotated_offset
+
+        # Clear existing xformOps so XformCommonAPI gets a clean slate
+        # (avoids conflicts with ops left by set_local_transform or prior mates)
+        UsdGeom.Xformable(prim_b).ClearXformOpOrder()
+
         xform_api = UsdGeom.XformCommonAPI(prim_b)
-        xform_api.SetRotate(new_euler)
-        
-        # 5. NOW recalculate positions (after rotation)
-        # Re-fetch the world transform of anchor_b after rotation
-        # Actually we need to predict where it will be after rotation
-        
-        # The anchor offset from duct origin (in local space)
-        local_anchor_offset = pos_anchor_b - pos_duct_b
-        
-        # Apply rotation to the offset
-        rot_mat = Gf.Matrix4d().SetRotate(rotation_to_apply)
-        rotated_offset = rot_mat.TransformDir(local_anchor_offset)
-        
-        # New duct position so rotated anchor is at target
-        new_pos = pos_anchor_a - rotated_offset
-        print(f"[Mate] Rotated anchor offset: {rotated_offset}")
-        print(f"[Mate] New duct B pos: {new_pos}")
-        
         xform_api.SetTranslate(new_pos)
-        
+        xform_api.SetRotate(new_euler)
+        return True
+
+    # ── Chain propagation ─────────────────────────────────────────────────────
+
+    def _propagate_chain(self, stage, root_prim_path):
+        """Re-mate every downstream duct starting from root_prim_path."""
+        visited      = set()
+        current_path = root_prim_path
+
+        while current_path and current_path not in visited:
+            visited.add(current_path)
+            prim = stage.GetPrimAtPath(current_path)
+            if not prim:
+                break
+
+            downstream_path = prim.GetCustomData().get('mate_downstream', '')
+            if not downstream_path:
+                break
+
+            ds_prim = stage.GetPrimAtPath(downstream_path)
+            if not ds_prim:
+                break
+
+            ok = self._apply_mate_positions(stage, prim, ds_prim)
+            if not ok:
+                print(f"[Chain] Missing anchors — stopped at {downstream_path}")
+                break
+
+            print(f"[Chain] Re-mated {downstream_path} → {current_path}")
+            current_path = downstream_path
+
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _on_mate_selected(self):
+        """Mates two selected ducts and stores the relationship in USD metadata."""
+        ctx   = omni.usd.get_context()
+        stage = ctx.get_stage()
+        self._ensure_stage_subscription(stage)
+        selection = ctx.get_selection().get_selected_prim_paths()
+
+        if len(selection) != 2:
+            self._status_label.text = "Select exactly 2 ducts to mate"
+            return
+
+        prim_a = stage.GetPrimAtPath(selection[0])
+        prim_b = stage.GetPrimAtPath(selection[1])
+        if not prim_a or not prim_b:
+            return
+
+        # Validate anchors exist before committing to anything
+        def get_anchor(prim, name):
+            for child in prim.GetChildren():
+                if child.GetName() == name:
+                    return child
+            return None
+
+        if not get_anchor(prim_a, "Anchor_End"):
+            self._status_label.text = "First duct has no Anchor_End (exit)"
+            return
+        if not get_anchor(prim_b, "Anchor_Start"):
+            self._status_label.text = "Second duct has no Anchor_Start (entry)"
+            return
+
+        print("[Mate] === Starting 6DOF Mate ===")
+
+        # Suppress notice handler — we are doing intentional writes
+        self._updating = True
+        try:
+            # 6DOF alignment
+            ok = self._apply_mate_positions(stage, prim_a, prim_b)
+            if not ok:
+                self._status_label.text = "Mate failed — missing anchors"
+                return
+
+            a_path = str(prim_a.GetPath())
+            b_path = str(prim_b.GetPath())
+
+            # Clear any stale downstream from A
+            a_cd = dict(prim_a.GetCustomData())
+            old_ds = a_cd.get('mate_downstream', '')
+            if old_ds and old_ds != b_path:
+                old_ds_prim = stage.GetPrimAtPath(old_ds)
+                if old_ds_prim:
+                    c = dict(old_ds_prim.GetCustomData())
+                    c.pop('mate_upstream', None)
+                    old_ds_prim.SetCustomData(c)
+
+            # Clear any stale upstream from B
+            b_cd = dict(prim_b.GetCustomData())
+            old_us = b_cd.get('mate_upstream', '')
+            if old_us and old_us != a_path:
+                old_us_prim = stage.GetPrimAtPath(old_us)
+                if old_us_prim:
+                    c = dict(old_us_prim.GetCustomData())
+                    c.pop('mate_downstream', None)
+                    old_us_prim.SetCustomData(c)
+
+            # Write new relationship
+            a_cd['mate_downstream'] = b_path
+            prim_a.SetCustomData(a_cd)
+
+            b_cd['mate_upstream'] = a_path
+            prim_b.SetCustomData(b_cd)
+
+            print(f"[Mate] Stored: {a_path} → {b_path}")
+
+        finally:
+            self._updating = False
+
         self._status_label.text = f"Mated {prim_b.GetName()} to {prim_a.GetName()}"
-        print(f"[Mate] Success: Mated {prim_b.GetName()} to {prim_a.GetName()}")
+        print(f"[Mate] Success: {prim_a.GetName()} → {prim_b.GetName()}")
+
+    def destroy(self):
+        """Revoke USD notice listener on window close."""
+        if self._notice_listener is not None:
+            self._notice_listener.Revoke()
+            self._notice_listener = None
+        super().destroy()

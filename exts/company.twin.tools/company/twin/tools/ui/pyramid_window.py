@@ -1,6 +1,6 @@
 import omni.ui as ui
 import omni.usd
-from ..objects.pyramid import PyramidGenerator
+from ..objects.components.pyramid import PyramidGenerator
 from ..utils import usd_utils
 import json
 import os

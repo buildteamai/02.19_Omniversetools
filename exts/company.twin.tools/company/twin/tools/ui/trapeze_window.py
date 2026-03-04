@@ -1,7 +1,7 @@
 import omni.ui as ui
 import omni.usd
 from pxr import UsdGeom, Sdf
-from ..objects.trapeze import Trapeze
+from ..objects.mep.trapeze import Trapeze
 from ..utils import usd_utils
 
 class TrapezeWindow(ui.Window):

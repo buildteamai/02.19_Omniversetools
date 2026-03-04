@@ -12,7 +12,7 @@ from pxr import Usd, UsdGeom, Gf, Sdf
 import omni.usd
 import json
 
-from ..objects.channel import ChannelGenerator
+from ..objects.structural.channel import ChannelGenerator
 
 
 class ComboItem(ui.AbstractItem):

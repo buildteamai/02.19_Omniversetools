@@ -3,8 +3,18 @@ import omni.ext
 import omni.kit.menu.utils
 from omni.kit.menu.utils import MenuItemDescription
 
+_extension_instance = None
+
+
+def get_extension():
+    """Return the active Extension instance (for cross-module access)."""
+    return _extension_instance
+
+
 class Extension(omni.ext.IExt):
     def on_startup(self, ext_id):
+        global _extension_instance
+        _extension_instance = self
         print("[company.twin.tools] startup")
         self._pyramid_window = None
         self._trapeze_window = None
@@ -14,7 +24,6 @@ class Extension(omni.ext.IExt):
         self._enclosure_configurator_window = None
         self._mating_window = None
         self._insert_equipment_window = None
-        self._snap_tool_window = None
         self._pipe_window = None
         self._channel_window = None
         self._hss_window = None
@@ -30,88 +39,123 @@ class Extension(omni.ext.IExt):
         self._frame_window = None
         self._tap_window = None
         self._step_import_window = None
+        self._step_export_window = None
         self._stair_window = None
+        self._platform_window = None
+        self._triposr_window = None
+        self._fan_controls_window = None
+        self._fan_design_window = None
+        self._command_palette = None
 
         # Force cleanup of old menu to ensure update
         if hasattr(self, "_menu_list"):
             omni.kit.menu.utils.remove_menu_items(self._menu_list, "Tools")
-        
+
+        # --- IEIP: Equipment Intelligence Platform ---
+        self._catalog_window = None
+        try:
+            from .core.registry_entries import register_all
+            register_all()
+        except Exception as e:
+            print(f"[company.twin.tools] IEIP registry init error: {e}")
+
         print("[company.twin.tools] Building Tools menu...")
         self._menu_list = [
             MenuItemDescription(name="Tools", sub_menu=[
-                
-                # --- STEEL ---
-                MenuItemDescription(name="Steel", sub_menu=[
+
+                # --- COMMAND PALETTE ---
+                MenuItemDescription(name="Command Palette", onclick_fn=self._show_command_palette),
+
+                # --- IEIP CATALOG ---
+                MenuItemDescription(name="Equipment Catalog", onclick_fn=self._show_catalog_window),
+                MenuItemDescription(),  # Separator
+
+                # --- SCENE SETUP ---
+                MenuItemDescription(name="Scene Setup", sub_menu=[
+                    MenuItemDescription(name="New Scene (ANSI)", onclick_fn=self._new_ansi_scene),
+                    MenuItemDescription(name="Measurement Tool", onclick_fn=self._show_measure_window),
+                    MenuItemDescription(name="Style Editor", onclick_fn=self._show_style_editor_window),
+                ]),
+
+                # --- STRUCTURAL ---
+                MenuItemDescription(name="Structural", sub_menu=[
                     MenuItemDescription(name="Frame Generator", onclick_fn=self._show_frame_window),
                     MenuItemDescription(name="Wide Flange", onclick_fn=self._show_wide_flange_window),
                     MenuItemDescription(name="Channel", onclick_fn=self._show_channel_window),
                     MenuItemDescription(name="HSS Tube", onclick_fn=self._show_hss_window),
-                    MenuItemDescription(name="Create Connection", onclick_fn=self._show_steel_connection_window),
+                    MenuItemDescription(name="Strongback", onclick_fn=self._show_strongback_window),
+                    MenuItemDescription(name="Steel Connection", onclick_fn=self._show_steel_connection_window),
                 ]),
-                
-                # --- MEP ---
-                MenuItemDescription(name="MEP", sub_menu=[
+
+                # --- MEP SYSTEMS ---
+                MenuItemDescription(name="MEP Systems", sub_menu=[
                     MenuItemDescription(name="Ductwork", onclick_fn=self._show_duct_window),
                     MenuItemDescription(name="Piping", onclick_fn=self._show_pipe_window),
-                    MenuItemDescription(name="Fan", onclick_fn=self._show_fan_window),
                     MenuItemDescription(name="Trapeze Hanger", onclick_fn=self._show_trapeze_window),
+                    MenuItemDescription(name="Exhaust Tap", onclick_fn=self._show_tap_window),
+                    MenuItemDescription(name="Fan Controls", onclick_fn=self._show_fan_controls_window),
+                    MenuItemDescription(name="Fan Design", onclick_fn=self._show_fan_design_window),
                 ]),
-                
-                # --- ARCHITECTURE ---
-                MenuItemDescription(name="Architecture", sub_menu=[
-                    MenuItemDescription(name="Enclosure Configurator", onclick_fn=self._show_enclosure_configurator),
-                    MenuItemDescription(name="Building Configurator", onclick_fn=self._show_building_window),
-                    MenuItemDescription(name="Construction Cube", onclick_fn=self._show_construction_cube_window),
-                    MenuItemDescription(name="Add Exhaust Tap", onclick_fn=self._show_tap_window),
-                ]),
-                
-                # --- CONVEYOR ---
-                MenuItemDescription(name="Conveyor", sub_menu=[
-                    MenuItemDescription(name="OHPF 10k", onclick_fn=self._show_ohpf_window),
-                ]),
-                
-                # --- IMPORTERS ---
-                MenuItemDescription(name="Importers", sub_menu=[
-                    MenuItemDescription(name="STEP File", onclick_fn=self._show_step_import_window),
-                ]),
-                
-                # --- OBJECTS & PARTS ---
-                MenuItemDescription(name="Objects", sub_menu=[
-                    MenuItemDescription(name="Create Object", onclick_fn=self._show_create_object_window),
-                    MenuItemDescription(name="Strongback", onclick_fn=self._show_strongback_window),
-                    MenuItemDescription(name="Safety Fence", onclick_fn=self._show_screen_guard_window),
-                    MenuItemDescription(name="Insert Equipment", onclick_fn=self._show_insert_equipment_window),
+
+                # --- COMPONENTS ---
+                MenuItemDescription(name="Components", sub_menu=[
                     MenuItemDescription(name="Sheet Metal Panel", onclick_fn=self._show_sheet_metal_window),
-                    MenuItemDescription(name="Pyramid", onclick_fn=self._show_pyramid_window),
+                    MenuItemDescription(name="Transition / Pyramid", onclick_fn=self._show_pyramid_window),
+                    MenuItemDescription(name="Safety Fence", onclick_fn=self._show_screen_guard_window),
                     MenuItemDescription(name="Industrial Stair", onclick_fn=self._show_stair_window),
+                    MenuItemDescription(name="Conveyor (OHPF)", onclick_fn=self._show_ohpf_window),
+                    MenuItemDescription(name="Platform", onclick_fn=self._show_platform_window),
+                    MenuItemDescription(name="Construction Cube", onclick_fn=self._show_construction_cube_window),
                 ]),
-                
-                # --- UTILITIES ---
-                MenuItemDescription(name="Utilities", sub_menu=[
-                    MenuItemDescription(name="Snap Tool", onclick_fn=self._show_snap_tool_window),
+
+                # --- BUILDINGS & ENCLOSURES ---
+                MenuItemDescription(name="Buildings & Enclosures", sub_menu=[
+                    MenuItemDescription(name="Building Configurator", onclick_fn=self._show_building_window),
+                    MenuItemDescription(name="Enclosure Configurator", onclick_fn=self._show_enclosure_configurator),
+                ]),
+
+                # --- ASSEMBLY ---
+                MenuItemDescription(name="Assembly", sub_menu=[
                     MenuItemDescription(name="Mate Objects", onclick_fn=self._show_mating_window),
-                    MenuItemDescription(name="Verify Mating", onclick_fn=self._verify_mating),
-                    MenuItemDescription(name="Measurement", onclick_fn=self._show_measure_window),
-                    MenuItemDescription(name="BOM Export", onclick_fn=self._show_bom_window),
-                    MenuItemDescription(name="New Scene (ANSI)", onclick_fn=self._new_ansi_scene),
+                    MenuItemDescription(name="Verify Connections", onclick_fn=self._verify_mating),
                 ]),
-                
-                # --- MODIFICATION ---
-                MenuItemDescription(name="Modification", sub_menu=[
-                    MenuItemDescription(name="Style Editor", onclick_fn=self._show_style_editor_window),
+
+                # --- IMPORT / EXPORT ---
+                MenuItemDescription(name="Import / Export", sub_menu=[
+                    MenuItemDescription(name="STEP File Import", onclick_fn=self._show_step_import_window),
+                    MenuItemDescription(name="STEP File Export", onclick_fn=self._show_step_export_window),
+                    MenuItemDescription(name="Image to 3D (TripoSR)", onclick_fn=self._show_triposr_window),
+                    MenuItemDescription(name="Insert Equipment", onclick_fn=self._show_insert_equipment_window),
+                    MenuItemDescription(name="BOM Export", onclick_fn=self._show_bom_window),
                 ]),
 
                 MenuItemDescription(),  # Separator
             ]),
         ]
 
-        
+
         omni.kit.menu.utils.add_menu_items(self._menu_list, "Tools")
-        
-        
+
+        # Auto-open Command Palette on startup
+        self._show_command_palette()
+
         print("[company.twin.tools] startup complete - no errors.")
 
 
+
+    def _show_command_palette(self, *args):
+        from .ui.command_palette_window import CommandPaletteWindow
+        if not self._command_palette:
+            self._command_palette = CommandPaletteWindow()
+        self._command_palette.visible = True
+
+    def _show_catalog_window(self, *args):
+        from .ui.catalog_window import CatalogWindow
+        if not hasattr(self, "_catalog_window"):
+            self._catalog_window = None
+        if not self._catalog_window:
+            self._catalog_window = CatalogWindow()
+        self._catalog_window.visible = True
 
     def _show_create_object_window(self, *args):
         from .ui.create_object_window import CreateObjectWindow
@@ -199,14 +243,6 @@ class Extension(omni.ext.IExt):
             self._insert_equipment_window = InsertEquipmentWindow()
         self._insert_equipment_window.visible = True
 
-    def _show_snap_tool_window(self, *args):
-        from .ui.snap_tool_window import SnapToolWindow
-        if not hasattr(self, "_snap_tool_window"):
-            self._snap_tool_window = None
-        if not self._snap_tool_window:
-            self._snap_tool_window = SnapToolWindow()
-        self._snap_tool_window.visible = True
-
     def _show_pipe_window(self, *args):
         from .ui.pipe_window import PipeWindow
         if not hasattr(self, "_pipe_window"):
@@ -239,8 +275,6 @@ class Extension(omni.ext.IExt):
             self._steel_connection_window = SteelConnectionWindow()
         self._steel_connection_window.visible = True
 
-
-
     def _show_bom_window(self, *args):
         from .ui.bom_window import BOMWindow
         if not hasattr(self, "_bom_window"):
@@ -264,6 +298,18 @@ class Extension(omni.ext.IExt):
         if not self._fan_window:
             self._fan_window = FanWindow()
         self._fan_window.visible = True
+
+    def _show_fan_controls_window(self, *args):
+        from .ui.fan_controls_window import FanControlsWindow
+        if not self._fan_controls_window:
+            self._fan_controls_window = FanControlsWindow()
+        self._fan_controls_window.visible = True
+
+    def _show_fan_design_window(self, *args):
+        from .ui.fan_design_window import FanDesignWindow
+        if not self._fan_design_window:
+            self._fan_design_window = FanDesignWindow()
+        self._fan_design_window.visible = True
 
     def _show_trapeze_window(self, *args):
         from .ui.trapeze_window import TrapezeWindow
@@ -300,28 +346,28 @@ class Extension(omni.ext.IExt):
         """
         import omni.usd
         from pxr import UsdGeom, UsdLux, Gf, Sdf
-        
+
         # Create new stage
         omni.usd.get_context().new_stage()
         stage = omni.usd.get_context().get_stage()
-        
+
         # Set Units (Inches) and Axis (Y-Up)
         UsdGeom.SetStageMetersPerUnit(stage, 0.0254)
         UsdGeom.SetStageUpAxis(stage, UsdGeom.Tokens.y)
-        
+
         # Create Default Prim /World
         root = UsdGeom.Xform.Define(stage, "/World")
         stage.SetDefaultPrim(root.GetPrim())
-        
+
         # Create Environment Scope
         UsdGeom.Scope.Define(stage, "/World/Environment")
-        
+
         # Add Grey Studio Light
         light_path = "/World/Environment/GreyStudio"
         dome = UsdLux.DomeLight.Define(stage, light_path)
-        dome.GetColorAttr().Set(Gf.Vec3f(0.8, 0.8, 0.8)) 
+        dome.GetColorAttr().Set(Gf.Vec3f(0.8, 0.8, 0.8))
         dome.GetIntensityAttr().Set(1000.0)
-        
+
         print("[company.twin.tools] Created New ANSI Scene (Inches, Y-Up)")
 
     def _show_style_editor_window(self, *args):
@@ -331,6 +377,14 @@ class Extension(omni.ext.IExt):
         if not self._style_editor_window:
             self._style_editor_window = StyleEditorWindow()
         self._style_editor_window.visible = True
+
+    def _show_platform_window(self, *args):
+        from .ui.platform_window import PlatformWindow
+        if not hasattr(self, "_platform_window"):
+            self._platform_window = None
+        if not self._platform_window:
+            self._platform_window = PlatformWindow()
+        self._platform_window.visible = True
 
     def _show_construction_cube_window(self, *args):
         from .ui.construction_cube_window import ConstructionCubeWindow
@@ -356,38 +410,66 @@ class Extension(omni.ext.IExt):
             self._step_import_window = StepImportWindow()
         self._step_import_window.visible = True
 
+    def _show_step_export_window(self, *args):
+        from .ui.step_export_window import StepExportWindow
+        if not hasattr(self, "_step_export_window"):
+            self._step_export_window = None
+        if not self._step_export_window:
+            self._step_export_window = StepExportWindow()
+        self._step_export_window.visible = True
+
+    def _show_triposr_window(self, *args):
+        from .ui.triposr_window import TripoSRWindow
+        if not hasattr(self, "_triposr_window"):
+            self._triposr_window = None
+        if not self._triposr_window:
+            self._triposr_window = TripoSRWindow()
+        self._triposr_window.visible = True
+
     def on_shutdown(self):
+        global _extension_instance
+        _extension_instance = None
         print("[company.twin.tools] shutdown")
+        command_palette = getattr(self, "_command_palette", None)
+        if command_palette:
+            command_palette.destroy()
+            self._command_palette = None
+
+        catalog_window = getattr(self, "_catalog_window", None)
+        if catalog_window:
+            catalog_window.destroy()
+            self._catalog_window = None
+
         pyramid_window = getattr(self, "_pyramid_window", None)
         if pyramid_window:
             pyramid_window.destroy()
             self._pyramid_window = None
-            
+
         wide_flange_window = getattr(self, "_wide_flange_window", None)
         if wide_flange_window:
             wide_flange_window.destroy()
             self._wide_flange_window = None
-            
+
         sheet_metal_window = getattr(self, "_sheet_metal_window", None)
         if sheet_metal_window:
             sheet_metal_window.destroy()
             self._sheet_metal_window = None
-            
+
         duct_window = getattr(self, "_duct_window", None)
         if duct_window:
             duct_window.destroy()
             self._duct_window = None
-        
+
         create_object_window = getattr(self, "_create_object_window", None)
         if create_object_window:
             create_object_window.destroy()
             self._create_object_window = None
-        
+
         enclosure_configurator_window = getattr(self, "_enclosure_configurator_window", None)
         if enclosure_configurator_window:
             enclosure_configurator_window.destroy()
             self._enclosure_configurator_window = None
-            
+
         mating_window = getattr(self, "_mating_window", None)
         if mating_window:
             mating_window.destroy()
@@ -397,11 +479,6 @@ class Extension(omni.ext.IExt):
         if insert_equipment_window:
             insert_equipment_window.destroy()
             self._insert_equipment_window = None
-
-        snap_tool_window = getattr(self, "_snap_tool_window", None)
-        if snap_tool_window:
-            snap_tool_window.destroy()
-            self._snap_tool_window = None
 
         pipe_window = getattr(self, "_pipe_window", None)
         if pipe_window:
@@ -423,6 +500,16 @@ class Extension(omni.ext.IExt):
             fan_window.destroy()
             self._fan_window = None
 
+        fan_controls_window = getattr(self, "_fan_controls_window", None)
+        if fan_controls_window:
+            fan_controls_window.destroy()
+            self._fan_controls_window = None
+
+        fan_design_window = getattr(self, "_fan_design_window", None)
+        if fan_design_window:
+            fan_design_window.destroy()
+            self._fan_design_window = None
+
         building_window = getattr(self, "_building_window", None)
         if building_window:
             building_window.destroy()
@@ -443,11 +530,16 @@ class Extension(omni.ext.IExt):
             frame_window.destroy()
             self._frame_window = None
 
+        platform_window = getattr(self, "_platform_window", None)
+        if platform_window:
+            platform_window.destroy()
+            self._platform_window = None
+
         construction_cube_window = getattr(self, "_construction_cube_window", None)
         if construction_cube_window:
             construction_cube_window.destroy()
             self._construction_cube_window = None
-            
+
         tap_window = getattr(self, "_tap_window", None)
         if tap_window:
             tap_window.destroy()
@@ -462,6 +554,11 @@ class Extension(omni.ext.IExt):
         if step_import_window:
             step_import_window.destroy()
             self._step_import_window = None
+
+        step_export_window = getattr(self, "_step_export_window", None)
+        if step_export_window:
+            step_export_window.destroy()
+            self._step_export_window = None
 
         screen_guard_window = getattr(self, "_screen_guard_window", None)
         if screen_guard_window:
@@ -478,6 +575,11 @@ class Extension(omni.ext.IExt):
             stair_window.destroy()
             self._stair_window = None
 
+        triposr_window = getattr(self, "_triposr_window", None)
+        if triposr_window:
+            triposr_window.destroy()
+            self._triposr_window = None
+
         if hasattr(self, "_menu_list"):
             omni.kit.menu.utils.remove_menu_items(self._menu_list, "Tools")
 
@@ -493,5 +595,3 @@ class Extension(omni.ext.IExt):
             print(f"[company.twin.tools] ERROR showing Stair Window: {e}")
             import traceback
             traceback.print_exc()
-            
-

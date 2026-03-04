@@ -7,7 +7,7 @@ from pxr import Gf, UsdGeom, UsdShade, Sdf
 import json
 import os
 import math
-from ..objects.duct_warp import DuctWarpGenerator
+from ..objects.mep.duct_warp import DuctWarpGenerator
 
 # Only used for saving presets if needed
 DATA_PATH = "c:/Programming/buildteamai/data/pipes.json"

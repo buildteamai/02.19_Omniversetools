@@ -59,6 +59,33 @@ class StyleEditorWindow(ui.Window):
     def _get_stage(self):
         return self._get_context().get_stage()
 
+    def _resolve_authorable_prim(self, prim):
+        """Walk up from an instance proxy, de-instance if needed, return the authorable root."""
+        # Find the instanceable ancestor
+        instanceable_prim = None
+        walker = prim
+        while walker and walker.IsInstanceProxy():
+            walker = walker.GetParent()
+        # walker is now the first non-proxy ancestor
+        # Check if it (or a parent) is marked instanceable
+        check = walker if walker else prim
+        while check:
+            if check.HasAttribute("instanceable"):
+                attr = check.GetAttribute("instanceable")
+                if attr and attr.Get():
+                    instanceable_prim = check
+                    break
+            check = check.GetParent()
+
+        # De-instance so all descendants become authorable
+        if instanceable_prim:
+            instanceable_prim.GetAttribute("instanceable").Set(False)
+            return instanceable_prim
+
+        if walker and walker.IsValid() and not walker.IsInstanceProxy():
+            return walker
+        return None
+
     def _apply_style(self, name, color_rgb, mat_type):
         """
         Applies a style to the current selection.
@@ -111,15 +138,25 @@ class StyleEditorWindow(ui.Window):
                         light_count += 1
             else:
                 # Apply Material to Geometry/Xform
+                # If this is an instance proxy, de-instance and resolve
+                target_prim = prim
+                if prim.IsInstanceProxy():
+                    target_prim = self._resolve_authorable_prim(prim)
+                    if not target_prim:
+                        if self._info_label:
+                            self._info_label.text = f"Cannot style instance proxy at {path}"
+                        continue
+
                 if not mat_path:
                     mat_path = self._ensure_material(stage, name, color_rgb, mat_type)
-                
+
                 if mat_path:
-                    # Create Binding API
-                    binding_api = UsdShade.MaterialBindingAPI.Apply(prim)
                     mat = UsdShade.Material.Get(stage, mat_path)
                     if mat:
-                        # Bind with Stronger Than Descendants to override references
+                        # Clear competing GeomSubset bindings in descendants
+                        self._clear_descendant_bindings(target_prim)
+                        # Bind at the target with strongerThanDescendants
+                        binding_api = UsdShade.MaterialBindingAPI.Apply(target_prim)
                         binding_api.Bind(mat, bindingStrength=UsdShade.Tokens.strongerThanDescendants)
                         
                         # Handle Invisible Special Case
@@ -137,6 +174,14 @@ class StyleEditorWindow(ui.Window):
 
         if self._info_label:
             self._info_label.text = f"Applied '{name}': {count} Objects, {light_count} Lights."
+
+    def _clear_descendant_bindings(self, root_prim):
+        """Remove material bindings from all descendants (GeomSubsets, meshes, etc.)."""
+        for descendant in Usd.PrimRange(root_prim):
+            if descendant == root_prim:
+                continue
+            if descendant.HasAPI(UsdShade.MaterialBindingAPI):
+                UsdShade.MaterialBindingAPI(descendant).UnbindAllBindings()
 
     def _ensure_material(self, stage, name, color, mat_type):
         """
@@ -212,8 +257,14 @@ class StyleEditorWindow(ui.Window):
             prim = stage.GetPrimAtPath(path)
             if not prim: continue
 
-            # Remove Material Binding
-            binding_api = UsdShade.MaterialBindingAPI(prim)
+            # Resolve instance proxy before clearing
+            target_prim = prim
+            if prim.IsInstanceProxy():
+                target_prim = self._resolve_authorable_prim(prim)
+                if not target_prim:
+                    continue
+
+            binding_api = UsdShade.MaterialBindingAPI(target_prim)
             if binding_api:
                 binding_api.UnbindAllBindings()
                 count += 1

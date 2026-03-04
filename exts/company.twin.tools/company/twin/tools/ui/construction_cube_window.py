@@ -1,7 +1,7 @@
 import omni.ui as ui
 import omni.usd
 from pxr import Usd, UsdGeom, Gf, Sdf
-from ..objects.construction_cube import ConstructionCubeGenerator
+from ..objects.components.construction_cube import ConstructionCubeGenerator
 from ..utils import usd_utils
 
 class ConstructionCubeWindow(ui.Window):

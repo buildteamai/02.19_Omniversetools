@@ -1,5 +1,5 @@
 from build123d import *
-from ..utils import usd_utils
+from ...utils import usd_utils
 import omni.usd
 from pxr import UsdGeom, Sdf, UsdShade, Gf
 

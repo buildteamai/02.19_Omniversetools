@@ -2,7 +2,7 @@ import sys
 # Add extension root to path to allow imports
 sys.path.append("c:/Programming/buildteamai/exts/company.twin.tools")
 
-from company.twin.tools.objects.frame import FrameGenerator
+from company.twin.tools.objects.structural.frame import FrameGenerator
 import build123d as bd
 
 # Mock Data

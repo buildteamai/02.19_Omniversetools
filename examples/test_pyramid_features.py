@@ -8,7 +8,7 @@ without requiring a full Omniverse environment.
 import sys
 sys.path.append("C:/Programming/buildteamai/exts/company.twin.tools")
 
-from company.twin.tools.objects.pyramid import PyramidGenerator
+from company.twin.tools.objects.components.pyramid import PyramidGenerator
 
 def test_basic_pyramid():
     """Test creating a basic pyramid without features"""

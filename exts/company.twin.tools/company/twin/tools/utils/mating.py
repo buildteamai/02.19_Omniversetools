@@ -209,14 +209,24 @@ class MatingSystem:
                     target_object.SetCustomDataByKey('diameter', source_diameter)
                     # Also update port attributes
                     target_prim.GetAttribute("twin:port_diameter").Set(source_diameter) if target_prim.HasAttribute("twin:port_diameter") else None
-                    
+
                 if source_width is not None:
                     target_object.SetCustomDataByKey('width', source_width)
                     target_prim.GetAttribute("twin:port_width").Set(source_width) if target_prim.HasAttribute("twin:port_width") else None
-                    
+
                 if source_height is not None:
                     target_object.SetCustomDataByKey('height', source_height)
                     target_prim.GetAttribute("twin:port_height").Set(source_height) if target_prim.HasAttribute("twin:port_height") else None
+
+                # Sync IEIP param namespace if target is an IEIP component
+                entry_id = target_object.GetCustomDataByKey("ieip:entry_id")
+                if entry_id:
+                    if source_width is not None:
+                        target_object.SetCustomDataByKey("ieip:param:width", float(source_width))
+                    if source_height is not None:
+                        target_object.SetCustomDataByKey("ieip:param:height", float(source_height))
+                    if source_diameter is not None:
+                        target_object.SetCustomDataByKey("ieip:param:diameter", float(source_diameter))
                 
                 # 5. Regenerate geometry
                 MatingSystem._regenerate_object(stage, target_object)
@@ -229,15 +239,28 @@ class MatingSystem:
     def _regenerate_object(stage, prim):
         """
         Helper to regenerate geometry for a prim based on its generatorType.
+        Tries IEIP registry first, then falls back to legacy dispatch.
         """
+        # IEIP path — if prim has ieip:entry_id, use the registry
+        try:
+            from ..core.equipment_registry import EquipmentRegistry
+            registry = EquipmentRegistry.instance()
+            registry.regenerate_component(stage, str(prim.GetPath()))
+            return
+        except ValueError:
+            pass  # Not an IEIP component — fall through to legacy
+        except Exception as e:
+            print(f"[MatingSystem] IEIP regeneration error: {e}")
+
+        # Legacy path
         gen_type = prim.GetCustomDataByKey('generatorType')
         if not gen_type:
             print(f"[MatingSystem] No generatorType on {prim.GetPath()}, cannot regenerate")
             return
-        
+
         # Import here to avoid circular imports
-        from ..objects.duct_warp import DuctWarpGenerator
-        
+        from ..objects.mep.duct_warp import DuctWarpGenerator
+
         if gen_type.startswith('duct_') or gen_type.startswith('pipe_'):
             DuctWarpGenerator.regenerate(stage, prim)
         else:

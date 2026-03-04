@@ -1,8 +1,8 @@
 
 from typing import Dict, Any, Tuple, List
 import build123d as bd
-from company.twin.tools.objects.wide_flange import WideFlangeGenerator
-from company.twin.tools.objects.hss_tube import HSSGenerator
+from company.twin.tools.objects.structural.wide_flange import WideFlangeGenerator
+from company.twin.tools.objects.structural.hss_tube import HSSGenerator
 from .base_solver import BaseSolver
 
 class FrameSolver(BaseSolver):
